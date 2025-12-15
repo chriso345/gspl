@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/simplex"
 )
 
@@ -22,7 +23,7 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 
 	err := simplex.Simplex(rootNode.SCF, config)
 	if err != nil {
-		return fmt.Errorf("error solving root node: %v", err)
+		return errors.New(errors.ErrUnknown, "error solving root node", err)
 	}
 
 	// If the root node is not optimal, the IP is infeasible or unbounded

@@ -2,10 +2,10 @@ package solver
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/chriso345/gspl/internal/brancher"
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/simplex"
 	"github.com/chriso345/gspl/lp"
 	"gonum.org/v1/gonum/mat"
@@ -28,6 +28,19 @@ type Solution struct {
 	PrimalSolution *mat.VecDense
 	Status         common.SolverStatus
 }
+
+// ErrorKind and Error are re-exported for public API use
+type ErrorKind = errors.ErrorKind
+
+var (
+	ErrUnknown          = errors.ErrUnknown
+	ErrInfeasible       = errors.ErrInfeasible
+	ErrUnbounded        = errors.ErrUnbounded
+	ErrNumericalFailure = errors.ErrNumericalFailure
+	ErrInvalidInput     = errors.ErrInvalidInput
+)
+
+type Error = errors.Error
 
 // Solve solves the given linear program and returns a Solution and an error.
 //
@@ -59,7 +72,7 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 		// Call the Integer Programming solver
 		err := brancher.BranchAndBound(ip, options)
 		if err != nil {
-			return nil, fmt.Errorf("integer solve failed: %w", err)
+			return nil, errors.New(errors.ErrUnknown, "integer solve failed", err)
 		}
 
 		sol := &Solution{Status: *ip.SCF.Status}
@@ -90,7 +103,7 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 
 	// Call the Simplex solver
 	if err := simplex.Simplex(scf, options); err != nil {
-		return nil, fmt.Errorf("simplex failed: %w", err)
+		return nil, errors.New(errors.ErrUnknown, "simplex failed", err)
 	}
 
 	// Copy the solution back without mutating the original problem state

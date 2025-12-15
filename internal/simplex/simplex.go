@@ -1,11 +1,10 @@
 package simplex
 
 import (
-	"errors"
-	"fmt"
 	"math"
 
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/matrix"
 	"gonum.org/v1/gonum/mat"
 )
@@ -54,7 +53,7 @@ func Simplex(scf *common.StandardComputationalForm, config *common.SolverConfig)
 	// Run Phase 1 of the RSM
 	err := RSM(sm, 1, config)
 	if err != nil {
-		return fmt.Errorf("error in Phase 1 of Simplex: %w", err)
+		return errors.New(errors.ErrNumericalFailure, "error in Phase 1 of Simplex", err)
 	}
 
 	// Check infeasibility
@@ -68,7 +67,7 @@ func Simplex(scf *common.StandardComputationalForm, config *common.SolverConfig)
 	err = removeArtificialFromBasis(sm)
 	if err != nil {
 		*scf.Status = common.SolverStatusInfeasible
-		return fmt.Errorf("error removing artificial variables from basis: %w", err)
+		return errors.New(errors.ErrNumericalFailure, "error removing artificial variables from basis", err)
 	}
 
 	// This _should_ always be true, but just in case
@@ -100,7 +99,7 @@ func Simplex(scf *common.StandardComputationalForm, config *common.SolverConfig)
 	// Run Phase 2 of the RSM
 	err = RSM(sm, 2, config)
 	if err != nil {
-		return fmt.Errorf("error in Phase 2 of Simplex: %w", err)
+		return errors.New(errors.ErrNumericalFailure, "error in Phase 2 of Simplex", err)
 	}
 	*scf.Status = sm.flag
 	if sm.flag == common.SolverStatusOptimal {
@@ -138,7 +137,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		err := xb.SolveVec(B, sm.b)
 		if err != nil {
 			// Basis is singular, return error
-			return fmt.Errorf("error solving for basic solution: %w", err)
+			return errors.New(errors.ErrNumericalFailure, "error solving for basic solution", err)
 		}
 
 		// Finding the leaving variable
@@ -149,7 +148,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		err = sm.pi.SolveVec(&BT, cb)
 		if err != nil {
 			// Basis is singular, return error
-			return fmt.Errorf("error solving for dual variables: %w", err)
+			return errors.New(errors.ErrNumericalFailure, "error solving for dual variables", err)
 		}
 
 		fe := enteringVariable{
@@ -170,7 +169,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 
 		err = findEnter(&fe)
 		if err != nil {
-			return fmt.Errorf("error finding entering variable: %w", err)
+			return errors.New(errors.ErrNumericalFailure, "error finding entering variable", err)
 		}
 
 		if fe.s == -1 {
@@ -197,7 +196,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 
 		err = findLeave(&fl)
 		if err != nil {
-			return fmt.Errorf("error finding leaving variable: %w", err)
+			return errors.New(errors.ErrNumericalFailure, "error finding leaving variable", err)
 		}
 
 		if fl.r == -1 {
@@ -221,11 +220,11 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		}
 
 		if err := updateB(&bu); err != nil {
-			return fmt.Errorf("error updating basis: %w", err)
+			return errors.New(errors.ErrNumericalFailure, "error updating basis", err)
 		}
 
 	}
-	return errors.New("max iterations reached in RSM")
+	return errors.New(errors.ErrNumericalFailure, "max iterations reached in RSM", nil)
 }
 
 func findEnter(fe *enteringVariable) error {
@@ -280,7 +279,7 @@ func findLeave(fl *leavingVariable) error {
 
 	var Binv mat.Dense
 	if err := Binv.Inverse(fl.B); err != nil {
-		return fmt.Errorf("error inverting basis matrix: %w", err)
+		return errors.New(errors.ErrNumericalFailure, "error inverting basis matrix", err)
 	}
 
 	directionVec := mat.NewVecDense(fl.as.Len(), nil)
@@ -342,10 +341,10 @@ func removeArtificialFromBasis(sm *simplexMethod) error {
 					}
 				}
 				if !replaced {
-					return errors.New("cannot remove artificial variable from basis: no non-basic original variable available")
+					return errors.New(errors.ErrInfeasible, "cannot remove artificial variable from basis: no non-basic original variable available", nil)
 				}
 			} else {
-				return errors.New("LP is infeasible: artificial variable in basis with positive value")
+				return errors.New(errors.ErrInfeasible, "LP is infeasible: artificial variable in basis with positive value", nil)
 			}
 		}
 	}

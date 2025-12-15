@@ -1,9 +1,8 @@
 package brancher
 
 import (
-	"errors"
-
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/errors"
 )
 
 // DefaultBranch represents the default branching strategy.
@@ -32,7 +31,7 @@ func DefaultBranch(node *common.Node) ([]*common.Node, error) {
 	up.SCF.AddBranch(branchingVarIndex, float64(int(node.SCF.PrimalSolution.AtVec(branchingVarIndex))+1), 2)
 
 	if branchingVarIndex == -1 {
-		return nil, errors.New("no branching variable found; node is already integer feasible")
+		return nil, errors.New(errors.ErrInfeasible, "no branching variable found; node is already integer feasible", nil)
 	}
 
 	return []*common.Node{up, down}, nil

@@ -15,7 +15,24 @@ func TestContains(t *testing.T) {
 	assert.False(t, contains(v, 6))
 }
 
-func TestRemoveArtificialFromBasis(t *testing.T) {
+func TestRemoveArtificialFromBasis(t *testing.T) {}
+
+func TestRemoveArtificialFromBasis_Infeasible(t *testing.T) {
+	sm := &simplexMethod{
+		m: 1,
+		n: 1,
+		rsmResult: rsmResult{
+			x:       mat.NewVecDense(2, []float64{0, 1}),
+			indices: mat.NewVecDense(1, []float64{1}),
+		},
+	}
+	err := removeArtificialFromBasis(sm)
+	if err == nil {
+		t.Errorf("expected infeasible error, got nil")
+	}
+}
+
+func TestRemoveArtificialFromBasis_Success(t *testing.T) {
 	sm := &simplexMethod{
 		m: 2,
 		n: 2, // original variables

@@ -2,7 +2,7 @@ package common
 
 import (
 	"context"
-	"fmt"
+	"github.com/chriso345/gspl/internal/errors"
 )
 
 // SolverConfig holds the actual configuration with no pointers.
@@ -48,16 +48,16 @@ func DefaultSolverConfig() *SolverConfig {
 // ValidateSolverConfig checks if the SolverConfig is valid.
 func ValidateSolverConfig(cfg *SolverConfig) error {
 	if cfg == nil {
-		return fmt.Errorf("solver config is nil")
+		return errors.New(errors.ErrInvalidInput, "solver config is nil", nil)
 	}
 	if cfg.Tolerance <= 0 {
-		return fmt.Errorf("tolerance must be > 0")
+		return errors.New(errors.ErrInvalidInput, "tolerance must be > 0", nil)
 	}
 	if cfg.MaxIterations <= 0 {
-		return fmt.Errorf("max iterations must be > 0")
+		return errors.New(errors.ErrInvalidInput, "max iterations must be > 0", nil)
 	}
 	if cfg.GapSensitivity < 0 || cfg.GapSensitivity > 1 {
-		return fmt.Errorf("gap sensitivity must be between 0 and 1")
+		return errors.New(errors.ErrInvalidInput, "gap sensitivity must be between 0 and 1", nil)
 	}
 
 	if cfg.Debug {

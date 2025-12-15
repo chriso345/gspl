@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/simplex"
 )
 
 func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *common.SolverConfig) error {
 	nodes, err := branchFunc(rootNode)
 	if err != nil {
-		return fmt.Errorf("error in branching function: %v", err)
+		return errors.New(errors.ErrUnknown, "error in branching function", err)
 	}
 
 	for _, node := range nodes {
@@ -20,7 +21,7 @@ func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *co
 		}
 		err := simplex.Simplex(node.SCF, config)
 		if err != nil {
-			return fmt.Errorf("error solving child node: %v", err)
+			return errors.New(errors.ErrUnknown, "error solving child node", err)
 		}
 
 		if *node.SCF.Status != common.SolverStatusOptimal {
