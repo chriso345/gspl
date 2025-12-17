@@ -8,13 +8,17 @@ default:
 test:
     go test ./... -count=1
 
-# Run benchmarks for solver package
-bench:
-    go test ./solver -bench . -benchmem
+# Run benchmarks
+bench folder="./benchmarks" branch="HEAD":
+    {{ scripts_dir }}/testing/run_benchmarks.sh {{ folder }} {{ branch }}
 
 # Coverage report
 cover:
-    {{ scripts_dir }}/coverage/run_coverage.sh
+    {{ scripts_dir }}/testing/run_coverage.sh
+
+# Run race detector
+race:
+    go test ./... -count=1 -race
 
 # Lint (if golangci-lint is installed)
 lint:

@@ -1,6 +1,9 @@
 package common
 
-import "gonum.org/v1/gonum/mat"
+import (
+	"gonum.org/v1/gonum/mat"
+	"sync"
+)
 
 type IntegerProgram struct {
 	SCF *StandardComputationalForm
@@ -11,6 +14,8 @@ type IntegerProgram struct {
 	// Best known solution
 	BestSolution *mat.VecDense // x*
 	BestObj      float64
+	// Mutex to protect BestObj and BestSolution updates across goroutines
+	BestMutex sync.Mutex
 
 	// User-supplied strategy functions
 	Branch    BranchFunc

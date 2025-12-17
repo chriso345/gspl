@@ -4,31 +4,41 @@ import (
 	"fmt"
 
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/concurrency"
 	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/simplex"
 )
 
 func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *common.SolverConfig) error {
+	return branchAndBoundParallel(ip, rootNode, config)
+}
+
+// branchAndBoundParallel runs branch-and-bound in parallel using goroutines and channels.
+func branchAndBoundParallel(ip *common.IntegerProgram, rootNode *common.Node, config *common.SolverConfig) error {
 	nodes, err := branchFunc(rootNode)
 	if err != nil {
 		return errors.New(errors.ErrUnknown, "error in branching function", err)
 	}
 
-	for _, node := range nodes {
-		node.Depth = rootNode.Depth + 1
+	type result struct {
+		node *common.Node
+		err  error
+	}
+	results := make(chan result, len(nodes))
+
+	// helper to process a node (can run inline or in goroutine)
+	processNode := func(root *common.Node, node *common.Node) error {
+		node.Depth = root.Depth + 1
 		if config.Debug {
 			fmt.Printf("[DEBUG] Branching to new node at depth %d\n", node.Depth)
 		}
 		err := simplex.Simplex(node.SCF, config)
 		if err != nil {
-			return errors.New(errors.ErrUnknown, "error solving child node", err)
+			return err
 		}
-
 		if *node.SCF.Status != common.SolverStatusOptimal {
-			// Node is infeasible, or unbounded, so it can be pruned
-			continue
+			return nil
 		}
-
 		node.IsInteger = isIntegerFeasible(node.SCF)
 		if config.Debug {
 			fmt.Printf("[DEBUG] Node Objective: %.4f, IsInteger: %v\n\n", *node.SCF.ObjectiveValue, node.IsInteger)
@@ -36,6 +46,8 @@ func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *co
 		}
 		if node.IsInteger {
 			objVal := *node.SCF.ObjectiveValue
+			// protect BestObj update
+			ip.BestMutex.Lock()
 			if objVal < ip.BestObj+config.Tolerance {
 				ip.BestObj = objVal
 				ip.BestSolution = node.SCF.PrimalSolution
@@ -43,15 +55,34 @@ func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *co
 					fmt.Printf("[DEBUG] New Best Obj: %.4f\n", ip.BestObj)
 				}
 			}
-			continue
+			ip.BestMutex.Unlock()
+			return nil
 		}
+		// Not integer feasible, branch recursively
+		return branchAndBoundParallel(ip, node, config)
+	}
 
-		// If not integer feasible, continue branching
-		err = branchAndBound(ip, node, config)
-		if err != nil && config.Logging {
-			fmt.Printf("Error in branchAndBound: %v\n", err)
+	for _, node := range nodes {
+		nd := node
+		// try to acquire goroutine slot
+		if concurrency.TryAcquireGoroutine() {
+			go func(n *common.Node) {
+				defer concurrency.ReleaseGoroutine()
+				err := processNode(rootNode, n)
+				results <- result{n, err}
+			}(nd)
+		} else {
+			// run inline
+			err := processNode(rootNode, nd)
+			results <- result{nd, err}
 		}
 	}
 
+	for range nodes {
+		r := <-results
+		if r.err != nil && config.Logging {
+			fmt.Printf("Error in branchAndBoundParallel: %v\n", r.err)
+		}
+	}
 	return nil
 }
