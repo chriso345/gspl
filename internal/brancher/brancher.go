@@ -32,21 +32,35 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 		return nil
 	}
 
-	ip.BestObj = *rootNode.SCF.ObjectiveValue
-	ip.BestSolution = rootNode.SCF.PrimalSolution
+	// Check if the root solution is integer feasible
 	rootNode.IsInteger = isIntegerFeasible(rootNode.SCF)
 
 	if config.Logging {
 		fmt.Printf("[DEBUG] Primal Solution: %v\n", rootNode.SCF.PrimalSolution)
 	}
 
-	// Check if the root solution is integer feasible
 	if rootNode.IsInteger {
+		// BestObj is stored in the original problem sense. If the SCF indicates
+		// the original problem was a maximisation, flip the sign (Simplex returns
+		// its minimisation-form objective value).
+		if rootNode.SCF.IsMaximization {
+			ip.BestObj = -(*rootNode.SCF.ObjectiveValue)
+		} else {
+			ip.BestObj = *rootNode.SCF.ObjectiveValue
+		}
+		ip.BestSolution = rootNode.SCF.PrimalSolution
 		*ip.SCF.Status = common.SolverStatusOptimal
 		return nil
 	}
 
 	err = branchAndBound(ip, rootNode, config)
+
+	// Set final SCF status depending on whether a best solution was found
+	if ip.BestSolution != nil {
+		*ip.SCF.Status = common.SolverStatusOptimal
+	} else {
+		*ip.SCF.Status = common.SolverStatusInfeasible
+	}
 
 	ip.SCF.ObjectiveValue = &ip.BestObj
 	ip.SCF.PrimalSolution = ip.BestSolution

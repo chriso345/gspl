@@ -79,7 +79,7 @@ func TestSolve_Maximization(t *testing.T) {
 	t.Logf("[Maximization] Solver Status: %v", prog.Status)
 
 	assert.Nil(t, err)
-	assert.Greater(t, prog.ObjectiveValue, 0.0)
+	assert.Equal(t, prog.ObjectiveValue, 30.0)
 }
 
 // Test minimisation

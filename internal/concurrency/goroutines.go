@@ -1,7 +1,6 @@
 package concurrency
 
 import (
-	"fmt"
 	"runtime"
 	"sync/atomic"
 )
@@ -15,7 +14,6 @@ var CURRENT_GOROUTINES atomic.Int32
 
 func init() {
 	maxGoroutines := int32(getPhysicalCores())
-	fmt.Printf("Setting MAX_GOROUTINES to %d\n", maxGoroutines)
 	atomic.StoreInt32(&MAX_GOROUTINES, maxGoroutines)
 }
 

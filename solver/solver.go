@@ -2,6 +2,7 @@ package solver
 
 import (
 	"context"
+	"math"
 
 	"github.com/chriso345/gspl/internal/brancher"
 	"github.com/chriso345/gspl/internal/common"
@@ -79,13 +80,18 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 		sol.ObjectiveValue = ip.BestObj
 		sol.PrimalSolution = mat.NewVecDense(ip.SCF.NumPrimals, nil)
 		if ip.BestSolution != nil {
+			// For integer programs, round the primal solution to integer values
 			for i := 0; i < ip.SCF.NumPrimals; i++ {
 				item := ip.BestSolution.AtVec(i)
 				if item < tol && item > -tol {
 					continue
 				}
-				sol.PrimalSolution.SetVec(i, item)
+				rounded := math.Round(item)
+				sol.PrimalSolution.SetVec(i, rounded)
 			}
+			// ip.BestObj is already stored in the original problem sense by the
+			// branch-and-bound routine; use it rather than recomputing from the
+			// possibly-negated lp.Objective vector.
 		}
 
 		return sol, nil
@@ -108,7 +114,13 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 
 	// Copy the solution back without mutating the original problem state
 	sol := &Solution{Status: *scf.Status}
-	sol.ObjectiveValue = *scf.ObjectiveValue
+	// Flip objective back to original sense for maximisation problems
+	// Flip objective back to original sense for maximisation problems
+	if scf.IsMaximization {
+		sol.ObjectiveValue = -(*scf.ObjectiveValue)
+	} else {
+		sol.ObjectiveValue = *scf.ObjectiveValue
+	}
 	// Ensure we never dereference a nil PrimalSolution from the SCF
 	sol.PrimalSolution = mat.NewVecDense(scf.NumPrimals, nil)
 	if scf.PrimalSolution != nil {
@@ -137,8 +149,15 @@ func newSCF(prog *lp.LinearProgram) *common.StandardComputationalForm {
 		}
 	}
 
+	// Copy objective. If the program is a maximisation and the objective has not
+	// already been negated by AddObjective, negate it here to convert to the
+	// solver's minimisation form.
+	objCopy := mat.VecDenseCopyOf(prog.Objective)
+	if prog.Sense == lp.LpMaximise && !prog.ObjectiveIsNegated {
+		objCopy.ScaleVec(-1, objCopy)
+	}
 	return &common.StandardComputationalForm{
-		Objective:   prog.Objective,
+		Objective:   objCopy,
 		Constraints: prog.Constraints,
 		RHS:         prog.RHS,
 
@@ -149,12 +168,21 @@ func newSCF(prog *lp.LinearProgram) *common.StandardComputationalForm {
 		Status:         &prog.Status,
 		SlackIndices:   slackIndices,
 		NumPrimals:     numPrimals,
+		// Record original sense so results can be flipped back if needed
+		IsMaximization: prog.Sense == lp.LpMaximise,
 	}
 }
 
 // newIP creates a new IP instance for the linear program
 func newIP(prog *lp.LinearProgram) *common.IntegerProgram {
-	return &common.IntegerProgram{
+	ip := &common.IntegerProgram{
 		SCF: newSCF(prog),
 	}
+	// Initialize BestObj appropriately for minimisation/maximisation
+	if prog.Sense == lp.LpMaximise {
+		ip.BestObj = math.Inf(-1)
+	} else {
+		ip.BestObj = math.Inf(1)
+	}
+	return ip
 }

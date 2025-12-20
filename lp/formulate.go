@@ -26,9 +26,11 @@ func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 		}
 		coef := term.Coefficient
 
-		// Solver requires a minimisation problem, if maximising we invert the coefficients
+		// Solver requires a minimisation problem. If maximising we invert the coefficients
+		// here and mark the LinearProgram so newSCF does not invert a second time.
 		if sense == LpMaximise {
 			coef = -coef
+			lp.ObjectiveIsNegated = true
 		}
 
 		lp.Objective.SetVec(varIndex, coef)

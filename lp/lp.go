@@ -26,6 +26,11 @@ type LinearProgram struct {
 
 	// Metadata
 	Description string
+
+	// Internal flag indicating the stored Objective has been negated to represent
+	// a maximisation problem in minimisation form. This prevents double-negation
+	// when Solve converts problems to the solver's internal form.
+	ObjectiveIsNegated bool
 }
 
 // NewLinearProgram Create a new Linear Program

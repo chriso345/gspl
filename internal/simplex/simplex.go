@@ -105,6 +105,7 @@ func Simplex(scf *common.StandardComputationalForm, config *common.SolverConfig)
 	if sm.flag == common.SolverStatusOptimal {
 		*scf.ObjectiveValue = sm.value
 		scf.PrimalSolution = sm.x
+		// debug removed
 	}
 
 	return nil

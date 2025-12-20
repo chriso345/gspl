@@ -61,7 +61,7 @@ func ParseFile(ctx context.Context, langName, filename string, opts ...ParseOpti
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return Parse(ctx, langName, f, opts...)
 }
 

@@ -26,7 +26,9 @@ func (t *testLang) Parse(ctx context.Context, src io.Reader, opts ...ParseOption
 func TestParseBytesAndFile(t *testing.T) {
 	ctx := context.Background()
 	// register a lightweight test language to avoid import cycles
-	RegisterLanguage(&testLang{})
+	if err := RegisterLanguage(&testLang{}); err != nil {
+		t.Fatalf("register language: %v", err)
+	}
 	defer UnregisterLanguage("gmpl")
 
 	b, err := os.ReadFile("testdata/example.gmpl")
