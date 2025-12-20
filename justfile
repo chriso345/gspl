@@ -9,8 +9,12 @@ test:
     go test ./... -count=1
 
 # Run benchmarks
-bench folder="./benchmarks" branch="HEAD":
+bench folder="." branch="HEAD":
     {{ scripts_dir }}/testing/run_benchmarks.sh {{ folder }} {{ branch }}
+
+# Run a single package benchmark
+bench-pkg pkg="./benchmarks/solver":
+    go test {{ pkg }} -run=^$ -bench=. -benchtime=2s -benchmem
 
 # Coverage report
 cover:

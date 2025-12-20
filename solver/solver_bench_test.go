@@ -1,10 +1,9 @@
-package solver_bench
+package solver
 
 import (
 	"testing"
 
 	"github.com/chriso345/gspl/lp"
-	"github.com/chriso345/gspl/solver"
 )
 
 func BenchmarkSolve_Small(b *testing.B) {
@@ -25,7 +24,7 @@ func BenchmarkSolve_Small(b *testing.B) {
 		prog.AddConstraint(lp.NewExpression(con1Terms), lp.LpConstraintGE, 7)
 		prog.AddConstraint(lp.NewExpression(con2Terms), lp.LpConstraintGE, 3)
 
-		if _, err := solver.Solve(&prog); err != nil {
+		if _, err := Solve(&prog); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -61,7 +60,7 @@ func BenchmarkSolve_Medium(b *testing.B) {
 		prog.AddConstraint(con4, lp.LpConstraintGE, 2)
 		prog.AddConstraint(con5, lp.LpConstraintGE, 3)
 
-		if _, err := solver.Solve(&prog); err != nil {
+		if _, err := Solve(&prog); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -108,7 +107,7 @@ func BenchmarkSolve_Large(b *testing.B) {
 			prog.AddConstraint(constraints[i], lp.LpConstraintGE, constValues[i])
 		}
 
-		if _, err := solver.Solve(&prog); err != nil {
+		if _, err := Solve(&prog); err != nil {
 			b.Fatal(err)
 		}
 	}
