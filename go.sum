@@ -1,5 +1,5 @@
-github.com/chriso345/clifford v0.0.0-20251206132800-894e32400e01 h1:EaKTqKcI8K+2eQ2X+hJusH1AEezmu6DFJYr+1UMcG2I=
-github.com/chriso345/clifford v0.0.0-20251206132800-894e32400e01/go.mod h1:ZgKYxOSKjTgdJVJdaoBCu+gnK/FVt4c406OrkVIhXfw=
+github.com/chriso345/clifford v0.0.0-20251220131933-7048612e614d h1:IAjnReGiDe0/DaH1G3SW8PslifmbLa2/5AqXJGthEno=
+github.com/chriso345/clifford v0.0.0-20251220131933-7048612e614d/go.mod h1:ZgKYxOSKjTgdJVJdaoBCu+gnK/FVt4c406OrkVIhXfw=
 github.com/chriso345/gore v0.0.6 h1:hMf9c9U7OeUZYcxsiJ3ihbP2z0MVu41yWWIQsWpbRGk=
 github.com/chriso345/gore v0.0.6/go.mod h1:Fv/xn9j30WYPNiqOtgKRSH6KYl0wIF1ri1zExGmck/I=
 gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=

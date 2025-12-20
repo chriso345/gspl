@@ -10,7 +10,18 @@ import (
 
 type CLIArgs struct {
 	clifford.Clifford `name:"gspl"`
-	clifford.Help
+	clifford.Help     `type:"subcmd"`
+
+	Run struct {
+		clifford.Subcommand
+		clifford.Desc `desc:"Run a specific linear program"`
+
+		File struct {
+			Value string
+			clifford.Required
+			clifford.Desc `desc:"Path to the linear program file to run"`
+		}
+	}
 
 	Version struct {
 		clifford.Subcommand

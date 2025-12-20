@@ -7,4 +7,4 @@ require (
 	gonum.org/v1/gonum v0.16.0
 )
 
-require github.com/chriso345/clifford v0.0.0-20251206132800-894e32400e01
+require github.com/chriso345/clifford v0.0.0-20251220131933-7048612e614d
