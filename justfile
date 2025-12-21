@@ -35,3 +35,7 @@ install-tools:
 # Run the command line application
 run *args:
     go run ./cmd/gspl {{ args }}
+
+# Open the documentation in the browser
+docs:
+    pkgsite

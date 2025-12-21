@@ -114,13 +114,14 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 
 	// Copy the solution back without mutating the original problem state
 	sol := &Solution{Status: *scf.Status}
-	// Flip objective back to original sense for maximisation problems
+
 	// Flip objective back to original sense for maximisation problems
 	if scf.IsMaximization {
 		sol.ObjectiveValue = -(*scf.ObjectiveValue)
 	} else {
 		sol.ObjectiveValue = *scf.ObjectiveValue
 	}
+
 	// Ensure we never dereference a nil PrimalSolution from the SCF
 	sol.PrimalSolution = mat.NewVecDense(scf.NumPrimals, nil)
 	if scf.PrimalSolution != nil {
