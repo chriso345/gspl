@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"context"
 	"testing"
 
 	"github.com/chriso345/gspl/internal/common"
@@ -217,4 +218,53 @@ func TestSolve_ToleranceZeroing(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Zero(t, prog.PrimalSolution.AtVec(0))
+}
+
+func TestSolve_Infeasible(t *testing.T) {
+	objective := mat.NewVecDense(1, []float64{1})
+	constraints := mat.NewDense(2, 1, []float64{1, 1})
+	rhs := mat.NewVecDense(2, []float64{1, 0})
+
+	prog := &lp.LinearProgram{
+		Sense:       lp.LpMinimise,
+		Objective:   objective,
+		Constraints: constraints,
+		RHS:         rhs,
+		ConTypes:    []lp.LpConstraintType{lp.LpConstraintGE, lp.LpConstraintLE},
+		Vars:        []lp.LpVariable{{Name: "x"}},
+		Status:      common.SolverStatusNotSolved,
+	}
+
+	sol, err := Solve(prog)
+	if sol != nil {
+		prog.ObjectiveValue = sol.ObjectiveValue
+		prog.PrimalSolution = sol.PrimalSolution
+		prog.Status = sol.Status
+	}
+	assert.Nil(t, err)
+	assert.Equal(t, prog.Status, common.SolverStatusInfeasible)
+}
+
+func TestSolve_ContextCancel(t *testing.T) {
+	objective := mat.NewVecDense(1, []float64{1})
+	constraints := mat.NewDense(1, 1, []float64{1})
+	rhs := mat.NewVecDense(1, []float64{0})
+
+	prog := &lp.LinearProgram{
+		Sense:       lp.LpMinimise,
+		Objective:   objective,
+		Constraints: constraints,
+		RHS:         rhs,
+		ConTypes:    []lp.LpConstraintType{lp.LpConstraintLE},
+		Vars:        []lp.LpVariable{{Name: "x"}},
+		Status:      common.SolverStatusNotSolved,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	sol, err := Solve(prog, WithContext(ctx))
+	assert.NotNil(t, err)
+	if sol != nil {
+		t.Error("Expected nil solution on context cancellation")
+	}
 }
