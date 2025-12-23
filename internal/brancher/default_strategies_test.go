@@ -57,7 +57,10 @@ func TestDefineStrategies_SetsDefaultsOrUsesProvided(t *testing.T) {
 		Constraints:    mat.NewDense(1, 1, []float64{0}),
 		RHS:            mat.NewVecDense(1, []float64{0}),
 	}
-	branchFunc(&common.Node{SCF: scf})
+	_, err := branchFunc(&common.Node{SCF: scf})
+	if err != nil {
+		t.Fatalf("branchFunc returned error: %v", err)
+	}
 	if !called {
 		t.Fatalf("expected branchFunc to call provided function")
 	}

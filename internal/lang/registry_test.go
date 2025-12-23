@@ -145,8 +145,14 @@ func TestParseFileSuccessWithFakeLang(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTemp: %v", err)
 	}
-	f.Close()
-	t.Cleanup(func() { os.Remove(f.Name()) })
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Remove(f.Name()); err != nil && !os.IsNotExist(err) {
+			t.Fatalf("Remove temp file: %v", err)
+		}
+	})
 
 	registerLang(t, &fakeLang{name: "filefake"})
 
