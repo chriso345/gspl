@@ -41,3 +41,10 @@ func TestParseExampleFile(t *testing.T) {
 		t.Fatalf("expected maximise sense, got %v", m.LP.Sense)
 	}
 }
+
+func TestParseExpressionInvalidCoefficient(t *testing.T) {
+	_, err := parseExpression("a* x1")
+	if err == nil {
+		t.Fatalf("expected error when parsing invalid coefficient")
+	}
+}

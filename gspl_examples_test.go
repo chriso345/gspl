@@ -312,7 +312,60 @@ func Example_knapsackProblem() {
 	// Primal Solution: [1 0 1 1 0]
 }
 
-func Example_transhipmentProblem() {
+func Example_mixedIntegerLinearProgram() {
+	variables := []lp.LpVariable{
+		lp.NewVariable("x_A", lp.LpCategoryContinuous),
+		lp.NewVariable("x_B", lp.LpCategoryContinuous),
+		lp.NewVariable("y", lp.LpCategoryBinary),
+	}
+
+	objTerms := []lp.LpTerm{
+		lp.NewTerm(5, variables[0]),
+		lp.NewTerm(8, variables[1]),
+		lp.NewTerm(-20, variables[2]),
+	}
+	objective := lp.NewExpression(objTerms)
+
+	capacityTerms := []lp.LpTerm{
+		lp.NewTerm(1, variables[0]),
+		lp.NewTerm(2, variables[1]),
+	}
+	capacityConstraint := lp.NewExpression(capacityTerms)
+
+	activationTerms := []lp.LpTerm{
+		lp.NewTerm(1, variables[1]),
+		lp.NewTerm(-10, variables[2]),
+	}
+	activationConstraint := lp.NewExpression(activationTerms)
+
+	lpProg := lp.NewLinearProgram("Mixed Integer Linear Program", variables)
+	lpProg.AddObjective(lp.LpMaximise, objective)
+	lpProg.AddConstraint(capacityConstraint, lp.LpConstraintLE, 18.5)
+	lpProg.AddConstraint(activationConstraint, lp.LpConstraintLE, 0)
+
+	fmt.Printf("%s\n", lpProg.String())
+
+	sol, err := solver.Solve(&lpProg)
+	if err != nil {
+		fmt.Println("solve error:", err)
+		return
+	}
+
+	fmt.Printf("Optimal Objective Value: %.2f\n", sol.ObjectiveValue)
+	fmt.Printf("Primal Solution: %v\n", sol.PrimalSolution.RawVector().Data)
+	// Output:
+	// Mixed Integer Linear Program
+	// Maximize: 5.00 * x_A + 8.00 * x_B - 20.00 * y
+	// Subject to:
+	//   C1: 1.00 * x_A + 2.00 * x_B <= 18.500
+	//   C2: 1.00 * x_B - 10.00 * y <= 0.000
+	// Binary variables: y
+	//
+	// Optimal Objective Value: 92.50
+	// Primal Solution: [18.5 0 0]
+}
+
+func Example_travellingSalesmanProblem() {
 	cities := []int{1, 2, 3, 4}
 
 	// --- Create edge variables x[i][j] for i != j ---
@@ -321,7 +374,7 @@ func Example_transhipmentProblem() {
 		for _, j := range cities {
 			if i != j {
 				name := fmt.Sprintf("x%d%d", i, j)
-				x[[2]int{i, j}] = lp.NewVariable(name, lp.LpCategoryInteger)
+				x[[2]int{i, j}] = lp.NewVariable(name, lp.LpCategoryBinary)
 			}
 		}
 	}
@@ -397,12 +450,6 @@ func Example_transhipmentProblem() {
 	for i := range 2 {
 		prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, u[i+2])}), lp.LpConstraintGE, 2)
 		prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, u[i+2])}), lp.LpConstraintLE, 4)
-	}
-
-	// --- Binary variable bounds ---
-	for _, v := range x {
-		prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, v)}), lp.LpConstraintGE, 0)
-		prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, v)}), lp.LpConstraintLE, 1)
 	}
 
 	// --- Solve ---

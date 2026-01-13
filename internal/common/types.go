@@ -25,3 +25,11 @@ func (s SolverStatus) String() string {
 		return "Unknown"
 	}
 }
+
+type VarCategory int
+
+const (
+	VarCategoryContinuous VarCategory = iota
+	VarCategoryInteger
+	VarCategoryBinary
+)

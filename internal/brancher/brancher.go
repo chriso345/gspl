@@ -40,9 +40,6 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 	}
 
 	if rootNode.IsInteger {
-		// BestObj is stored in the original problem sense. If the SCF indicates
-		// the original problem was a maximisation, flip the sign (Simplex returns
-		// its minimisation-form objective value).
 		if rootNode.SCF.IsMaximization {
 			ip.BestObj = -(*rootNode.SCF.ObjectiveValue)
 		} else {
@@ -70,13 +67,28 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 // isIntegerFeasible checks if a solution is currently integer feasible
 func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 	sol := scf.PrimalSolution
+	// If VarCategories is not populated, fall back to legacy SlackIndices behaviour
+	if len(scf.VarCategories) == 0 {
+		for i := 0; i < sol.Len(); i++ {
+			val := sol.AtVec(i)
+			isSlack := scf.SlackIndices[i]
+			if math.Floor(val) != val && isSlack == -1 {
+				return false
+			}
+		}
+		return true
+	}
+
 	for i := 0; i < sol.Len(); i++ {
 		val := sol.AtVec(i)
-		// If the current value is not integer and it the index is not in the slack indices
-		isSlack := scf.SlackIndices[i]
-
-		if math.Floor(val) != val && isSlack == -1 {
-			return false
+		// Only variables declared as integer or binary need to be integer-feasible.
+		if i < len(scf.VarCategories) {
+			cat := scf.VarCategories[i]
+			if cat == common.VarCategoryInteger || cat == common.VarCategoryBinary {
+				if math.Floor(val) != val {
+					return false
+				}
+			}
 		}
 	}
 	return true

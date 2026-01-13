@@ -3,9 +3,9 @@ package lp
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/chriso345/gore/assert"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -41,9 +41,32 @@ func TestPrintSolution(t *testing.T) {
 	_, _ = buf.ReadFrom(r)
 	os.Stdout = oldStdout
 
-	assert.True(t, buf.Len() > 0)
-	assert.StringContains(t, buf.String(), "Test LP")
-	assert.StringContains(t, buf.String(), "ObjectiveValue")
-	assert.StringContains(t, buf.String(), "x1")
-	assert.StringContains(t, buf.String(), "x2")
+	if buf.Len() == 0 {
+		t.Fatalf("expected output from PrintSolution")
+	}
+	out := buf.String()
+	if !strings.Contains(out, "Test LP") || !strings.Contains(out, "ObjectiveValue") || !strings.Contains(out, "x1") || !strings.Contains(out, "x2") {
+		t.Fatalf("unexpected output: %s", out)
+	}
+}
+
+func TestLinearProgramStringUndefinedObjective(t *testing.T) {
+	p := NewLinearProgram("desc", []LpVariable{NewVariable("x1")})
+	s := p.String()
+	if !strings.Contains(s, "<undefined objective>") {
+		t.Fatalf("expected undefined objective in string, got: %s", s)
+	}
+}
+
+func TestLinearProgramStringWithObjectiveAndConstraints(t *testing.T) {
+	x := NewVariable("x1")
+	p := NewLinearProgram("desc", []LpVariable{x})
+	p.AddObjective(LpMinimise, NewExpression([]LpTerm{NewTerm(-2, x)}))
+	p.AddConstraint(NewExpression([]LpTerm{NewTerm(1, x)}), LpConstraintLE, 3)
+	p.Vars[1].Category = LpCategoryInteger // mark slack as integer to hit integer listing
+	p.Vars[0].Category = LpCategoryBinary  // mark original var as binary
+	s := p.String()
+	if !strings.Contains(s, "Minimize") || !strings.Contains(s, "Subject to:") || !strings.Contains(s, "Integer variables") || !strings.Contains(s, "Binary variables") {
+		t.Fatalf("unexpected string output: %s", s)
+	}
 }

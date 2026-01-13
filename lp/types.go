@@ -1,5 +1,7 @@
 package lp
 
+import "github.com/chriso345/gspl/internal/common"
+
 // LpExpression represents the LHS of a linear expression
 type LpExpression struct {
 	Terms []LpTerm
@@ -40,8 +42,8 @@ func NewVariable(name string, category ...LpCategory) LpVariable {
 	return LpVariable{name, false, false, category[0]}
 }
 
-// LpCategory represents the category of a linear programming variable, such as continuous, integer, or binary.
-type LpCategory int
+// LpCategory represents the category of a variable in a linear programming problem.
+type LpCategory = common.VarCategory
 
 const (
 	LpCategoryContinuous LpCategory = iota

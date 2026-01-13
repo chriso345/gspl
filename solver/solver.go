@@ -80,14 +80,22 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 		sol.ObjectiveValue = ip.BestObj
 		sol.PrimalSolution = mat.NewVecDense(ip.SCF.NumPrimals, nil)
 		if ip.BestSolution != nil {
-			// For integer programs, round the primal solution to integer values
+			// For integer programs, round the primal solution to integer values for integer/binary vars
 			for i := 0; i < ip.SCF.NumPrimals; i++ {
 				item := ip.BestSolution.AtVec(i)
 				if item < tol && item > -tol {
 					continue
 				}
-				rounded := math.Round(item)
-				sol.PrimalSolution.SetVec(i, rounded)
+				// Only round integer/binary variables
+				if i < len(ip.SCF.VarCategories) {
+					cat := ip.SCF.VarCategories[i]
+					if cat == common.VarCategoryInteger || cat == common.VarCategoryBinary {
+						sol.PrimalSolution.SetVec(i, math.Round(item))
+						continue
+					}
+				}
+				// Continuous variables: keep value as-is
+				sol.PrimalSolution.SetVec(i, item)
 			}
 			// ip.BestObj is already stored in the original problem sense by the
 			// branch-and-bound routine; use it rather than recomputing from the
@@ -171,6 +179,14 @@ func newSCF(prog *lp.LinearProgram) *common.StandardComputationalForm {
 		NumPrimals:     numPrimals,
 		// Record original sense so results can be flipped back if needed
 		IsMaximization: prog.Sense == lp.LpMaximise,
+		// Propagate variable categories so brancher can make decisions
+		VarCategories: func() []common.VarCategory {
+			cats := make([]common.VarCategory, len(prog.Vars))
+			for i, v := range prog.Vars {
+				cats[i] = common.VarCategory(v.Category)
+			}
+			return cats
+		}(),
 	}
 }
 

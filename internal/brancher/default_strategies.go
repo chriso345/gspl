@@ -9,14 +9,7 @@ import (
 //
 // This branches on the first variable found that is not integer in the current node
 func DefaultBranch(node *common.Node) ([]*common.Node, error) {
-	down := &common.Node{
-		SCF: node.SCF.Copy(),
-	}
-	up := &common.Node{
-		SCF: node.SCF.Copy(),
-	}
-
-	// Get the branching variable
+	// Find branching variable
 	branchingVarIndex := -1
 	for i := 0; i < node.SCF.PrimalSolution.Len(); i++ {
 		val := node.SCF.PrimalSolution.AtVec(i)
@@ -26,14 +19,45 @@ func DefaultBranch(node *common.Node) ([]*common.Node, error) {
 		}
 	}
 
-	// Add constraints to respective child nodes (added as <= constraints)
-	down.SCF.AddBranch(branchingVarIndex, float64(int(node.SCF.PrimalSolution.AtVec(branchingVarIndex))), 1)
-	up.SCF.AddBranch(branchingVarIndex, float64(int(node.SCF.PrimalSolution.AtVec(branchingVarIndex))+1), 2)
-
 	if branchingVarIndex == -1 {
 		return nil, errors.New(errors.ErrInfeasible, "no branching variable found; node is already integer feasible", nil)
 	}
 
+	val := node.SCF.PrimalSolution.AtVec(branchingVarIndex)
+
+	// If variable category is continuous, skip branching on it (MILP allows continuous non-integers)
+	if branchingVarIndex < len(node.SCF.VarCategories) && node.SCF.VarCategories[branchingVarIndex] == common.VarCategoryContinuous {
+		// Do not branch on continuous variables, find next
+		found := false
+		for i := branchingVarIndex + 1; i < node.SCF.PrimalSolution.Len(); i++ {
+			val2 := node.SCF.PrimalSolution.AtVec(i)
+			if val2 != float64(int(val2)) && i < len(node.SCF.VarCategories) && node.SCF.VarCategories[i] != common.VarCategoryContinuous {
+				branchingVarIndex = i
+				val = val2
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, errors.New(errors.ErrInfeasible, "no suitable branching variable found; node may be MILP-feasible", nil)
+		}
+	}
+
+	// If this column is binary, create equality fixes to 0 and 1.
+	if branchingVarIndex < len(node.SCF.VarCategories) && node.SCF.VarCategories[branchingVarIndex] == common.VarCategoryBinary {
+		down := &common.Node{SCF: node.SCF.Copy()}
+		up := &common.Node{SCF: node.SCF.Copy()}
+		// Fix to 0 and 1
+		down.SCF.AddEquality(branchingVarIndex, 0)
+		up.SCF.AddEquality(branchingVarIndex, 1)
+		return []*common.Node{up, down}, nil
+	}
+
+	// Fallback: general integer branching using AddBranch
+	down := &common.Node{SCF: node.SCF.Copy()}
+	up := &common.Node{SCF: node.SCF.Copy()}
+	down.SCF.AddBranch(branchingVarIndex, float64(int(val)), 1)
+	up.SCF.AddBranch(branchingVarIndex, float64(int(val)+1), 2)
 	return []*common.Node{up, down}, nil
 }
 

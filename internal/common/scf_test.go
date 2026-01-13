@@ -60,3 +60,25 @@ func TestSCFAddBranch(t *testing.T) {
 	assert.Equal(t, scf.Constraints.At(2, 0), -1.0)
 	assert.Equal(t, scf.RHS.AtVec(2), -3.0)
 }
+
+func TestSCFAddEquality(t *testing.T) {
+	// create a minimal SCF
+	scf := &StandardComputationalForm{
+		Objective:      mat.NewVecDense(1, []float64{1}),
+		Constraints:    mat.NewDense(1, 1, []float64{2}),
+		RHS:            mat.NewVecDense(1, []float64{3}),
+		PrimalSolution: mat.NewVecDense(1, []float64{0}),
+		SlackIndices:   []int{-1},
+		VarCategories:  []VarCategory{VarCategoryInteger},
+	}
+	scf.AddEquality(0, 5)
+	if scf.Constraints.RawMatrix().Rows != 2 {
+		t.Fatalf("expected 2 rows after AddEquality, got %d", scf.Constraints.RawMatrix().Rows)
+	}
+	if scf.RHS.Len() != 2 {
+		t.Fatalf("expected RHS length 2 after AddEquality, got %d", scf.RHS.Len())
+	}
+	if scf.RHS.AtVec(1) != 5 {
+		t.Fatalf("expected equality RHS 5, got %v", scf.RHS.AtVec(1))
+	}
+}

@@ -21,4 +21,9 @@ func (e *ParseError) Error() string {
 	return e.Message
 }
 
-func (e *ParseError) Unwrap() error { return e.Err }
+func (e *ParseError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}

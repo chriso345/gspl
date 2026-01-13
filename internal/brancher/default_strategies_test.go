@@ -79,3 +79,16 @@ func TestDefaultHeuristicAndCut(t *testing.T) {
 		assert.Equal(t, len(cuts), 0)
 	}
 }
+
+func TestDefaultBranchNoVariable(t *testing.T) {
+	// Node with integer primal solution values -> no branching variable
+	scf := &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(2, []float64{1, 2}),
+		VarCategories:  []common.VarCategory{common.VarCategoryInteger, common.VarCategoryInteger},
+	}
+	node := &common.Node{SCF: scf}
+	_, err := DefaultBranch(node)
+	if err == nil {
+		t.Fatalf("expected error when no branching variable found")
+	}
+}

@@ -55,3 +55,36 @@ func Test_KnapsackProblem(t *testing.T) {
 	assert.Equal(t, sol.Status.String(), lp.LpStatusOptimal.String())
 	assert.IsClose(t, sol.ObjectiveValue, 17, 1e-5)
 }
+
+func Test_BinaryMaximisation(t *testing.T) {
+	variables := []lp.LpVariable{
+		lp.NewVariable("x1", lp.LpCategoryBinary),
+		lp.NewVariable("x2", lp.LpCategoryBinary),
+		lp.NewVariable("x3", lp.LpCategoryBinary),
+	}
+
+	objTerms := []lp.LpTerm{
+		lp.NewTerm(1, variables[0]),
+		lp.NewTerm(2, variables[1]),
+		lp.NewTerm(-2, variables[2]),
+	}
+
+	objective := lp.NewExpression(objTerms)
+
+	con1Terms := []lp.LpTerm{
+		lp.NewTerm(1, variables[0]),
+		lp.NewTerm(1, variables[1]),
+		lp.NewTerm(1, variables[2]),
+	}
+	con1 := lp.NewExpression(con1Terms)
+
+	prog := lp.NewLinearProgram("Binary Maximisation", variables)
+	prog.AddObjective(lp.LpMaximise, objective)
+	prog.AddConstraint(con1, lp.LpConstraintLE, 2.2)
+
+	sol, err := solver.Solve(&prog)
+	assert.Nil(t, err)
+	assert.Equal(t, sol.Status.String(), lp.LpStatusOptimal.String())
+	assert.IsClose(t, sol.ObjectiveValue, 3, 1e-5)
+	t.Logf("Variable Values: %+v", sol.PrimalSolution.RawVector())
+}

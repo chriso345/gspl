@@ -74,3 +74,39 @@ func TestAddConstraint(t *testing.T) {
 	lp.AddConstraint(expr2, LpConstraintGE, -3)
 	assert.Equal(t, lp.Constraints.RawMatrix().Rows, 2)
 }
+
+func TestAddConstraintFlipAndSlack(t *testing.T) {
+	vars := []LpVariable{NewVariable("x1")}
+	p := NewLinearProgram("desc", vars)
+	// define an objective so AddConstraint can run
+	p.AddObjective(LpMinimise, NewExpression([]LpTerm{NewTerm(1, vars[0])}))
+	// Add a constraint with negative RHS which should be flipped and produce a surplus variable
+	p.AddConstraint(NewExpression([]LpTerm{NewTerm(2, vars[0])}), LpConstraintLE, -5)
+	if p.RHS.AtVec(0) != 5 {
+		t.Fatalf("expected RHS 5 after flip, got %v", p.RHS.AtVec(0))
+	}
+	if p.ConTypes[0] != LpConstraintGE {
+		t.Fatalf("expected constraint type GE after flip, got %v", p.ConTypes[0])
+	}
+	// slack variable should have been appended
+	slack := p.Vars[len(p.Vars)-1]
+	if !slack.IsSlack {
+		t.Fatalf("expected last var to be slack")
+	}
+	// surplus for GE should be -1 in the current row
+	if p.Constraints.At(0, p.Constraints.RawMatrix().Cols-1) != -1 {
+		t.Fatalf("expected surplus -1, got %v", p.Constraints.At(0, p.Constraints.RawMatrix().Cols-1))
+	}
+}
+
+func TestAddObjectiveVariableNotFoundPanic(t *testing.T) {
+	p := NewLinearProgram("desc", []LpVariable{NewVariable("x1")})
+	// expression refers to a variable not in p.Vars
+	expr := NewExpression([]LpTerm{NewTerm(1, NewVariable("missing"))})
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic when objective references unknown variable")
+		}
+	}()
+	p.AddObjective(LpMinimise, expr)
+}
