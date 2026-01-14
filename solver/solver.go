@@ -30,19 +30,6 @@ type Solution struct {
 	Status         common.SolverStatus
 }
 
-// ErrorKind and Error are re-exported for public API use
-type ErrorKind = errors.ErrorKind
-
-var (
-	ErrUnknown          = errors.ErrUnknown
-	ErrInfeasible       = errors.ErrInfeasible
-	ErrUnbounded        = errors.ErrUnbounded
-	ErrNumericalFailure = errors.ErrNumericalFailure
-	ErrInvalidInput     = errors.ErrInvalidInput
-)
-
-type Error = errors.Error
-
 // Solve solves the given linear program and returns a Solution and an error.
 //
 // The function returns a populated *Solution on success, or a non-nil error if

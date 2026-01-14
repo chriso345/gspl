@@ -21,15 +21,14 @@ type LinearProgram struct {
 	// DualSolution   *mat.VecDense // y*
 	Status common.SolverStatus
 
-	// Simplex internal state (kept unexported for future use)
-	// (fields removed to satisfy linters until used)
+	// Multi-Objective support
+	SecondaryObjectives []*mat.VecDense // c2, c3, ...
 
 	// Metadata
 	Description string
 
 	// Internal flag indicating the stored Objective has been negated to represent
-	// a maximisation problem in minimisation form. This prevents double-negation
-	// when Solve converts problems to the solver's internal form.
+	// a maximization problem.
 	ObjectiveIsNegated bool
 }
 

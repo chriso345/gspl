@@ -13,6 +13,7 @@ func TestParseArgs_Default(t *testing.T) {
 	args := ParseArgs()
 	if args == nil {
 		t.Fatal("expected non-nil args")
+		return
 	}
 	if args.Version.Subcommand {
 		t.Fatal("version should not be set for default args")
@@ -31,6 +32,7 @@ func TestParseArgs_Run(t *testing.T) {
 	args := ParseArgs()
 	if args == nil {
 		t.Fatal("expected non-nil args")
+		return
 	}
 	if !args.Run.Subcommand {
 		t.Fatal("expected run subcommand to be set")
