@@ -248,11 +248,11 @@ func Example_maximisation() {
 
 func Example_knapsackProblem() {
 	variables := []lp.LpVariable{
-		lp.NewVariable("x1", lp.LpCategoryInteger),
-		lp.NewVariable("x2", lp.LpCategoryInteger),
-		lp.NewVariable("x3", lp.LpCategoryInteger),
-		lp.NewVariable("x4", lp.LpCategoryInteger),
-		lp.NewVariable("x5", lp.LpCategoryInteger),
+		lp.NewVariable("x1", lp.LpCategoryBinary),
+		lp.NewVariable("x2", lp.LpCategoryBinary),
+		lp.NewVariable("x3", lp.LpCategoryBinary),
+		lp.NewVariable("x4", lp.LpCategoryBinary),
+		lp.NewVariable("x5", lp.LpCategoryBinary),
 	}
 
 	objTerms := []lp.LpTerm{
@@ -277,11 +277,6 @@ func Example_knapsackProblem() {
 	lpProg.AddObjective(lp.LpMaximise, objective)
 	lpProg.AddConstraint(knapsackConstraint, lp.LpConstraintLE, 15)
 
-	for _, v := range variables {
-		lpProg.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, v)}), lp.LpConstraintGE, 0)
-		lpProg.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, v)}), lp.LpConstraintLE, 1)
-	}
-
 	fmt.Printf("%s\n", lpProg.String())
 
 	sol, err := solver.Solve(&lpProg)
@@ -296,17 +291,7 @@ func Example_knapsackProblem() {
 	// Maximize: 5.00 * x1 + 3.00 * x2 + 6.00 * x3 + 6.00 * x4 + 2.00 * x5
 	// Subject to:
 	//   C1: 1.00 * x1 + 4.00 * x2 + 7.00 * x3 + 6.00 * x4 + 2.00 * x5 <= 15.000
-	//   C2: 1.00 * x1 >= 0.000
-	//   C3: 1.00 * x1 <= 1.000
-	//   C4: 1.00 * x2 >= 0.000
-	//   C5: 1.00 * x2 <= 1.000
-	//   C6: 1.00 * x3 >= 0.000
-	//   C7: 1.00 * x3 <= 1.000
-	//   C8: 1.00 * x4 >= 0.000
-	//   C9: 1.00 * x4 <= 1.000
-	//   C10: 1.00 * x5 >= 0.000
-	//   C11: 1.00 * x5 <= 1.000
-	// Integer variables: x1, x2, x3, x4, x5
+	// Binary variables: x1, x2, x3, x4, x5
 	//
 	// Optimal Objective Value: 17.00
 	// Primal Solution: [1 0 1 1 0]

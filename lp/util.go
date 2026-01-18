@@ -45,7 +45,7 @@ func (lp *LinearProgram) String() string {
 			first = false
 		}
 		varName := lp.Vars[i]
-		sb.WriteString(fmt.Sprintf("%.2f * %s", math.Abs(coef), varName.Name))
+		fmt.Fprintf(&sb, "%.2f * %s", math.Abs(coef), varName.Name)
 	}
 	sb.WriteString("\n")
 
@@ -57,7 +57,7 @@ func (lp *LinearProgram) String() string {
 	// Constraints
 	sb.WriteString("Subject to:\n")
 	for row := range lp.Constraints.RawMatrix().Rows {
-		sb.WriteString(fmt.Sprintf("  C%d: ", row+1))
+		fmt.Fprintf(&sb, "  C%d: ", row+1)
 
 		first = true
 		for col := range lp.Constraints.RawMatrix().Cols {
@@ -81,7 +81,7 @@ func (lp *LinearProgram) String() string {
 				first = false
 			}
 			varName := lp.Vars[col]
-			sb.WriteString(fmt.Sprintf("%.2f * %s", math.Abs(coef), varName.Name))
+			fmt.Fprintf(&sb, "%.2f * %s", math.Abs(coef), varName.Name)
 		}
 
 		// Constraint type and RHS
@@ -95,7 +95,7 @@ func (lp *LinearProgram) String() string {
 		default:
 			sb.WriteString(" ? ")
 		}
-		sb.WriteString(fmt.Sprintf("%.3f\n", lp.RHS.AtVec(row)))
+		fmt.Fprintf(&sb, "%.3f\n", lp.RHS.AtVec(row))
 	}
 
 	// Variable bounds (integer, binary)

@@ -118,10 +118,10 @@ func parseReaderToLP(r io.Reader, filename string) (*lp.LinearProgram, error) {
 			if strings.HasPrefix(lower, "maximize") {
 				objectiveSense = lp.LpMaximise
 			}
-			if idx := strings.Index(line, ":"); idx >= 0 {
-				objectiveExpr = strings.TrimSpace(line[idx+1:])
-			} else if idx := strings.Index(line, " "); idx >= 0 {
-				objectiveExpr = strings.TrimSpace(line[idx+1:])
+			if _, after, ok := strings.Cut(line, ":"); ok {
+				objectiveExpr = strings.TrimSpace(after)
+			} else if _, after0, ok0 := strings.Cut(line, " "); ok0 {
+				objectiveExpr = strings.TrimSpace(after0)
 			}
 			continue
 		}
