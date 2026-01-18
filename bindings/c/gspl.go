@@ -68,6 +68,7 @@ func gspl_program_add_variable(
 
 	p := get(handle(prog)).(*program)
 
+	// Map C enum to Go enum
 	var category lp.LpCategory
 	switch cat {
 	case C.GSPL_INTEGER:
@@ -78,10 +79,10 @@ func gspl_program_add_variable(
 		category = lp.LpCategoryContinuous
 	}
 
-	v := lp.NewVariable(C.GoString(name), category)
+	// Add variable as a value (not pointer)
+	v := lp.NewVariable(C.GoString(name), category) // value
 	p.vars = append(p.vars, v)
-	p.lp.Vars = append(p.lp.Vars, v)
-
+	p.lp.Vars = append(p.lp.Vars, v) // keep same slice order
 	return C.GSPL_Handle(put(v))
 }
 
@@ -98,7 +99,7 @@ func gspl_program_set_objective(
 		mode = lp.LpMaximise
 	}
 	p.objSense = mode
-	p.obj = lp.NewExpression(nil)
+	p.obj = lp.NewExpression(nil) // empty expression
 }
 
 //export gspl_program_add_objective_term
@@ -108,7 +109,7 @@ func gspl_program_add_objective_term(
 	varH C.GSPL_Handle,
 ) {
 	p := get(handle(prog)).(*program)
-	v := get(handle(varH)).(lp.LpVariable)
+	v := get(handle(varH)).(lp.LpVariable) // pointer
 	p.obj.Terms = append(p.obj.Terms, lp.NewTerm(float64(coeff), v))
 }
 
@@ -136,7 +137,11 @@ func gspl_program_add_constraint(
 		Expr lp.LpExpression
 		Type lp.LpConstraintType
 		RHS  float64
-	}{Expr: lp.NewExpression(nil), Type: ct, RHS: float64(rhs)})
+	}{
+		Expr: lp.NewExpression(nil), // empty expression
+		Type: ct,
+		RHS:  float64(rhs),
+	})
 	return C.int(id)
 }
 
@@ -148,8 +153,18 @@ func gspl_constraint_add_term(
 	varH C.GSPL_Handle,
 ) {
 	p := get(handle(prog)).(*program)
-	v := get(handle(varH)).(lp.LpVariable)
+	v := get(handle(varH)).(lp.LpVariable) // pointer
 	p.constraints[int(id)].Expr.Terms = append(p.constraints[int(id)].Expr.Terms, lp.NewTerm(float64(coeff), v))
+}
+
+// helper to find variable index in LP vars
+func indexOfVariable(vars []lp.LpVariable, v lp.LpVariable) int {
+	for i, vv := range vars {
+		if vv.Name == v.Name && vv.IsSlack == v.IsSlack && vv.Category == v.Category {
+			return i
+		}
+	}
+	return -1
 }
 
 // --- solving ---
@@ -157,12 +172,14 @@ func gspl_constraint_add_term(
 //export gspl_program_solve
 func gspl_program_solve(prog C.GSPL_Handle) C.GSPL_Handle {
 	p := get(handle(prog)).(*program)
-	// assemble LP from stored pieces
-	p.lp.Vars = make([]lp.LpVariable, len(p.vars))
-	copy(p.lp.Vars, p.vars)
-	// set objective
+
+	// Do NOT make a new slice; keep original p.lp.Vars
+	// p.lp.Vars = p.vars   // slice already consistent
+
+	// Add objective
 	p.lp.AddObjective(p.objSense, p.obj)
-	// add constraints
+
+	// Add constraints
 	for _, c := range p.constraints {
 		p.lp.AddConstraint(c.Expr, c.Type, c.RHS)
 	}
@@ -172,7 +189,20 @@ func gspl_program_solve(prog C.GSPL_Handle) C.GSPL_Handle {
 		lastError = err.Error()
 		return 0
 	}
-	return C.GSPL_Handle(put(sol))
+
+	// Extract original variable values in the same order using index lookup
+	vals := make([]float64, len(p.vars))
+	for i, v := range p.vars {
+		idx := indexOfVariable(p.lp.Vars, v)
+		if sol.PrimalSolution != nil && idx >= 0 && idx < sol.PrimalSolution.Len() {
+			vals[i] = sol.PrimalSolution.AtVec(idx)
+		} else {
+			vals[i] = 0
+		}
+	}
+
+	cs := &cSolution{Obj: sol.ObjectiveValue, Vals: vals}
+	return C.GSPL_Handle(put(cs))
 }
 
 // --- solver options and multi-objective wrappers ---
@@ -184,6 +214,13 @@ type solverConfig struct {
 type mopSolution struct {
 	vals []float64
 	sol  *solver.MopSolution
+}
+
+// cSolution is a C-facing snapshot of a solver solution mapping original
+// program variables (excluding slacks) into a simple float slice.
+type cSolution struct {
+	Obj  float64
+	Vals []float64
 }
 
 //export gspl_new_solver_config
@@ -229,7 +266,7 @@ func gspl_solver_free(h C.GSPL_Handle) {
 }
 
 //export gspl_solve_lexicographic
-func gspl_solve_lexicographic(prog C.GSPL_Handle, cfgH C.GSPL_Handle) C.GSPL_Handle {
+func gspl_solve_lexicographic(prog C.GSPL_Handle, _ C.GSPL_Handle) C.GSPL_Handle {
 	p := get(handle(prog)).(*program)
 	// assemble LP as in gspl_program_solve
 	p.lp.Vars = make([]lp.LpVariable, len(p.vars))
@@ -250,7 +287,7 @@ func gspl_solve_lexicographic(prog C.GSPL_Handle, cfgH C.GSPL_Handle) C.GSPL_Han
 }
 
 //export gspl_solve_pareto
-func gspl_solve_pareto(prog C.GSPL_Handle, cfgH C.GSPL_Handle) C.GSPL_Handle {
+func gspl_solve_pareto(prog C.GSPL_Handle, _ C.GSPL_Handle) C.GSPL_Handle {
 	p := get(handle(prog)).(*program)
 	p.lp.Vars = make([]lp.LpVariable, len(p.vars))
 	copy(p.lp.Vars, p.vars)
@@ -283,7 +320,7 @@ func gspl_mop_solution_count(h C.GSPL_Handle) C.int {
 }
 
 //export gspl_mop_solution_get_objective
-func gspl_mop_solution_get_objective(h C.GSPL_Handle, solIndex C.int, objIndex C.int) C.double {
+func gspl_mop_solution_get_objective(h C.GSPL_Handle, _ C.int, objIndex C.int) C.double {
 	m := get(handle(h)).(*mopSolution)
 	if int(objIndex) < 0 || int(objIndex) >= len(m.vals) {
 		return 0
@@ -292,7 +329,7 @@ func gspl_mop_solution_get_objective(h C.GSPL_Handle, solIndex C.int, objIndex C
 }
 
 //export gspl_mop_solution_get_variable
-func gspl_mop_solution_get_variable(h C.GSPL_Handle, solIndex C.int, varIndex C.int) C.double {
+func gspl_mop_solution_get_variable(h C.GSPL_Handle, _ C.int, varIndex C.int) C.double {
 	m := get(handle(h)).(*mopSolution)
 	if m.sol == nil || m.sol.PrimalSolution == nil {
 		return 0
@@ -302,20 +339,51 @@ func gspl_mop_solution_get_variable(h C.GSPL_Handle, solIndex C.int, varIndex C.
 
 //export gspl_solution_objective_value
 func gspl_solution_objective_value(sol C.GSPL_Handle) C.double {
-	s := get(handle(sol)).(*solver.Solution)
-	return C.double(s.ObjectiveValue)
+	x := get(handle(sol))
+	// support both cSolution and solver.Solution for backwards compatibility
+	switch v := x.(type) {
+	case *cSolution:
+		return C.double(v.Obj)
+	case *solver.Solution:
+		return C.double(v.ObjectiveValue)
+	default:
+		return 0
+	}
 }
 
 //export gspl_solution_variable_count
 func gspl_solution_variable_count(sol C.GSPL_Handle) C.int {
-	s := get(handle(sol)).(*solver.Solution)
-	return C.int(s.PrimalSolution.Len())
+	x := get(handle(sol))
+	switch v := x.(type) {
+	case *cSolution:
+		return C.int(len(v.Vals))
+	case *solver.Solution:
+		if v.PrimalSolution == nil {
+			return 0
+		}
+		return C.int(v.PrimalSolution.Len())
+	default:
+		return 0
+	}
 }
 
 //export gspl_solution_variable_value
 func gspl_solution_variable_value(sol C.GSPL_Handle, index C.int) C.double {
-	s := get(handle(sol)).(*solver.Solution)
-	return C.double(s.PrimalSolution.AtVec(int(index)))
+	x := get(handle(sol))
+	switch v := x.(type) {
+	case *cSolution:
+		if int(index) < 0 || int(index) >= len(v.Vals) {
+			return 0
+		}
+		return C.double(v.Vals[int(index)])
+	case *solver.Solution:
+		if v.PrimalSolution == nil {
+			return 0
+		}
+		return C.double(v.PrimalSolution.AtVec(int(index)))
+	default:
+		return 0
+	}
 }
 
 //export gspl_solution_free

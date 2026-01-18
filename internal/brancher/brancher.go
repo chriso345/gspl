@@ -79,13 +79,49 @@ func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 		return true
 	}
 
-	for i := 0; i < sol.Len(); i++ {
-		val := sol.AtVec(i)
-		// Only variables declared as integer or binary need to be integer-feasible.
-		if i < len(scf.VarCategories) {
-			cat := scf.VarCategories[i]
-			if cat == common.VarCategoryInteger || cat == common.VarCategoryBinary {
+	// Build mapping from primal index to original variable index
+	var primalToVar []int
+	for varIdx, slackMarker := range scf.SlackIndices {
+		if slackMarker == -1 {
+			primalToVar = append(primalToVar, varIdx)
+		}
+	}
+
+	// If mapping doesn't match, conservatively fallback to legacy behaviour
+	if len(primalToVar) != sol.Len() {
+		for i := 0; i < sol.Len(); i++ {
+			val := sol.AtVec(i)
+			varIdx := i
+			if varIdx < len(scf.VarCategories) {
+				cat := scf.VarCategories[varIdx]
+				if cat == common.VarCategoryInteger || cat == common.VarCategoryBinary {
+					// For binary also ensure within [0,1]
+					if cat == common.VarCategoryBinary {
+						if !(math.Abs(val-0) < 1e-9 || math.Abs(val-1) < 1e-9) {
+							return false
+						}
+					} else if math.Floor(val) != val {
+						return false
+					}
+				}
+			}
+		}
+		return true
+	}
+
+	for p := 0; p < sol.Len(); p++ {
+		val := sol.AtVec(p)
+		varIdx := primalToVar[p]
+		if varIdx < len(scf.VarCategories) {
+			cat := scf.VarCategories[varIdx]
+			switch cat {
+			case common.VarCategoryInteger:
 				if math.Floor(val) != val {
+					return false
+				}
+			case common.VarCategoryBinary:
+				// binary must be 0 or 1 (allow tiny numerical tolerance)
+				if !(math.Abs(val-0) < 1e-9 || math.Abs(val-1) < 1e-9) {
 					return false
 				}
 			}

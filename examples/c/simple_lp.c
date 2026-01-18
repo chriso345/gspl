@@ -1,9 +1,3 @@
-/*
-To build and run:
-gcc examples/c/simple_lp.c -Ibindings/c -Lbindings/c -lgspl -o
-examples/c/simple_lp LD_LIBRARY_PATH=bindings/c ./examples/c/simple_lp
-*/
-
 #include <stdio.h>
 
 // Generated C bindings for gspl
