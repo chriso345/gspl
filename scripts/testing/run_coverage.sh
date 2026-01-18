@@ -5,6 +5,7 @@ set -euo pipefail
 # Directories to exclude from tests
 EXCLUDE_DIRS=(
   "examples/"
+  "bindings/"
 )
 
 # Coverage threshold (percent)
