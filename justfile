@@ -36,6 +36,10 @@ install-tools:
 run *args:
     go run ./cmd/gspl {{ args }}
 
+# Generate bindings
+bind-gen:
+    {{ scripts_dir }}/bindings/generate_bindings.sh
+
 # Open the documentation in the browser
 docs:
     pkgsite
