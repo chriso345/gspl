@@ -39,6 +39,7 @@ run *args:
 # Generate bindings
 bind-gen:
     {{ scripts_dir }}/bindings/generate_bindings.sh
+    {{ scripts_dir }}/bindings/check_bindings_exports.sh
 
 # Open the documentation in the browser
 docs:

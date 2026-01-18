@@ -54,8 +54,32 @@ void gspl_solution_free(GSPL_Handle sol);
 char *gspl_program_string(GSPL_Handle prog);
 void gspl_free_string(char *str);
 
+/* --- multi-objective solving --- */
+GSPL_Handle gspl_solve_lexicographic(GSPL_Handle prog, GSPL_Handle solver_cfg);
+GSPL_Handle gspl_solve_pareto(GSPL_Handle prog, GSPL_Handle solver_cfg);
+void gspl_mop_solution_free(GSPL_Handle mop);
+int gspl_mop_solution_count(GSPL_Handle mop);
+double gspl_mop_solution_get_objective(GSPL_Handle mop, int solIndex, int objIndex);
+double gspl_mop_solution_get_variable(GSPL_Handle mop, int solIndex, int varIndex);
+
+/* --- solver options --- */
+GSPL_Handle gspl_new_solver_config(void);
+void gspl_solver_with_tolerance(GSPL_Handle cfg, double tol);
+void gspl_solver_with_max_iterations(GSPL_Handle cfg, int max);
+void gspl_solver_with_gap_sensitivity(GSPL_Handle cfg, double gap);
+void gspl_solver_with_threads(GSPL_Handle cfg, int threads);
+void gspl_solver_with_logging(GSPL_Handle cfg, int enabled);
+void gspl_solver_free(GSPL_Handle cfg);
+
+/* --- optional: strings --- */
+char *gspl_program_string(GSPL_Handle prog);
+void gspl_free_string(char *str);
+
 /* --- optional: last error --- */
 char *gspl_last_error(void);
+
+/* --- version --- */
+char *gspl_version(void);
 
 #ifdef __cplusplus
 }
