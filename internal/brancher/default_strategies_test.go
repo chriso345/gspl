@@ -92,3 +92,35 @@ func TestDefaultBranchNoVariable(t *testing.T) {
 		t.Fatalf("expected error when no branching variable found")
 	}
 }
+
+func TestDefaultBranch_SkipContinuousFindsNext(t *testing.T) {
+	scf := &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(3, []float64{1.5, 2.5, 3.0}),
+		VarCategories:  []common.VarCategory{common.VarCategoryContinuous, common.VarCategoryInteger, common.VarCategoryInteger},
+		SlackIndices:   []int{-1, -1, -1},
+		Constraints:    mat.NewDense(1, 3, []float64{0, 0, 0}),
+		RHS:            mat.NewVecDense(1, []float64{0}),
+		Objective:      mat.NewVecDense(3, []float64{0, 0, 0}),
+		ObjectiveValue: new(float64),
+		Status:         new(common.SolverStatus),
+	}
+	node := &common.Node{SCF: scf}
+	children, err := DefaultBranch(node)
+	if err != nil {
+		t.Fatalf("expected branch to succeed, got error: %v", err)
+	}
+	assert.Equal(t, len(children), 2)
+}
+
+func TestDefaultBranch_NoSuitableDueToContinuous(t *testing.T) {
+	scf := &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(2, []float64{1.5, 2.5}),
+		VarCategories:  []common.VarCategory{common.VarCategoryContinuous, common.VarCategoryContinuous},
+		SlackIndices:   []int{-1, -1},
+	}
+	node := &common.Node{SCF: scf}
+	_, err := DefaultBranch(node)
+	if err == nil {
+		t.Fatalf("expected error due to no suitable branching variable")
+	}
+}

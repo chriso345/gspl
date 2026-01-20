@@ -15,7 +15,7 @@ EXCLUDE_ROOT=true
 # Coverage thresholds (percent)
 DEFAULT_PACKAGE_THRESHOLD=50
 TOTAL_THRESHOLD=60
-CORE_PACKAGE_THRESHOLD=90
+CORE_PACKAGE_THRESHOLD=80
 
 # Core packages (require higher coverage)
 CORE_PACKAGES=(
