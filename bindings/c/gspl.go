@@ -13,6 +13,7 @@ import (
 	"github.com/chriso345/gspl/internal/common"
 	"github.com/chriso345/gspl/lp"
 	"github.com/chriso345/gspl/solver"
+	"github.com/chriso345/gspl/solver/mop"
 )
 
 var lastError string
@@ -213,7 +214,7 @@ type solverConfig struct {
 
 type mopSolution struct {
 	vals []float64
-	sol  *solver.MopSolution
+	sol  *mop.MopSolution
 }
 
 // cSolution is a C-facing snapshot of a solver solution mapping original
@@ -277,7 +278,7 @@ func gspl_solve_lexicographic(prog C.GSPL_Handle, _ C.GSPL_Handle) C.GSPL_Handle
 	}
 
 	// solver config currently ignored by this wrapper
-	mop, err := solver.SolveLexicographic(&p.lp)
+	mop, err := mop.SolveLexicographic(&p.lp)
 	if err != nil {
 		lastError = err.Error()
 		return 0
@@ -297,7 +298,7 @@ func gspl_solve_pareto(prog C.GSPL_Handle, _ C.GSPL_Handle) C.GSPL_Handle {
 	}
 
 	// solver config currently ignored by this wrapper
-	mops, err := solver.SolvePareto(&p.lp)
+	mops, err := mop.SolvePareto(&p.lp, mop.ParetoWeightedSum)
 	if err != nil {
 		lastError = err.Error()
 		return 0
