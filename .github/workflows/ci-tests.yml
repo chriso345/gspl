@@ -31,6 +31,9 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Go Build & Vet
         run: |
           go build ./...
@@ -50,5 +53,8 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
       - name: Check Bindings Exports
         run: scripts/bindings/check_bindings_exports.sh
