@@ -2,7 +2,7 @@ name: Conventional Commit Check
 
 on:
   pull_request:
-    types: [opened, edited]
+    types: [opened, edited, synchronize]
 
 jobs:
   validate_pr_title:
