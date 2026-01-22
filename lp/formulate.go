@@ -9,6 +9,14 @@ import (
 func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 	lp.Sense = sense
 
+	// If an objective already exists, move it to SecondaryObjectives
+	if lp.Objective != nil {
+		if lp.SecondaryObjectives == nil {
+			lp.SecondaryObjectives = []*mat.VecDense{}
+		}
+		lp.SecondaryObjectives = append(lp.SecondaryObjectives, mat.VecDenseCopyOf(lp.Objective))
+	}
+
 	// Create the objective function vector
 	lp.Objective = mat.NewVecDense(len(lp.Vars), nil)
 
