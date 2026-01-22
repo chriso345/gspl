@@ -1,0 +1,57 @@
+name: Conventional Commit Check
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  validate_pr_title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate PR title and detect breaking changes
+        id: check_title
+        run: |
+          #!/bin/bash
+          set -euo pipefail
+
+          # Allowed prefixes
+          PREFIXES=("feat" "fix" "docs" "style" "refactor" "test" "chore")
+
+          # Get PR title and number
+          PR_TITLE=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
+          PR_NUMBER=$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")
+
+          echo "PR title: $PR_TITLE"
+
+          # Regex for conventional commit: prefix[optional scope][optional !]: description
+          PREFIX_PATTERN=$(IFS="|"; echo "${PREFIXES[*]}")
+          REGEX="^(${PREFIX_PATTERN})(\\([a-zA-Z0-9_-]+\\))?(!)?: .+"
+
+          if [[ "$PR_TITLE" =~ $REGEX ]]; then
+            if [[ "$PR_TITLE" == *"!"* ]]; then
+              echo "Breaking change detected!"
+              echo "breaking_change=true" >> $GITHUB_OUTPUT
+            else
+              echo "breaking_change=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "PR title does NOT follow Conventional Commits."
+            echo "Expected format: <type>[optional scope][!]: description"
+            echo "Allowed types: ${PREFIXES[*]}"
+            echo "Examples:"
+            echo "  feat: add login endpoint"
+            echo "  fix(auth)!: fix critical bug"
+            exit 1
+          fi
+
+      - name: Add breaking-change label if needed
+        if: steps.check_title.outputs.breaking_change == 'true'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: breaking-change
