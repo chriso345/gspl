@@ -20,7 +20,11 @@ type SolverConfig struct {
 	Heuristic      HeuristicFunc
 	Cut            CutFunc
 
-	// Not Yet Implemented
+	// MOP Specific Options
+	EpsilonSteps int
+	WeightedSums [][]float64
+
+	// Configuration Not Yet Implemented
 	Threads int
 
 	Debug bool
@@ -38,6 +42,9 @@ func DefaultSolverConfig() *SolverConfig {
 		Branch:         nil, // Default branching strategy defined in `brancher`
 		Heuristic:      nil, // Default heuristic defined in `brancher`
 		Cut:            nil, // Default cutting planes defined in `brancher`
+
+		EpsilonSteps: 10,
+		WeightedSums: nil,
 
 		Threads: 0, // 0 means use all available cores
 

@@ -45,13 +45,14 @@ func solveParetoWeightedSum(
 	objs []*mat.VecDense,
 	sopts ...solver.SolverOption,
 ) ([]*MopSolution, error) {
-	weights := defaultSimplexWeights(len(objs))
+	cfg := solver.NewSolverConfig(sopts...)
 
 	n := len(objs)
 	if n == 0 {
 		return nil, nil
 	}
 
+	weights := cfg.WeightedSums
 	if len(weights) == 0 {
 		weights = defaultSimplexWeights(n)
 	}
@@ -71,7 +72,7 @@ func solveParetoWeightedSum(
 		}
 
 		p.Objective = comb
-		sol, err := solver.Solve(p, sopts...)
+		sol, err := solver.Solve(p, with(*cfg))
 		if err != nil {
 			return nil, err
 		}
@@ -92,8 +93,7 @@ func solveParetoEpsilon(
 	objs []*mat.VecDense,
 	sopts ...solver.SolverOption,
 ) ([]*MopSolution, error) {
-	// FIXME: make epsilonSteps configurable
-	epsilonSteps := 10
+	cfg := solver.NewSolverConfig(sopts...)
 
 	if len(objs) < 2 {
 		return nil, errors.New(errors.ErrInvalidInput, "epsilon-constraint requires >=2 objectives", nil)
@@ -103,7 +103,7 @@ func solveParetoEpsilon(
 	others := objs[1:]
 
 	p.Objective = primary
-	base, err := solver.Solve(p, sopts...)
+	base, err := solver.Solve(p, with(*cfg))
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +116,7 @@ func solveParetoEpsilon(
 		},
 	}
 
+	epsilonSteps := cfg.EpsilonSteps
 	for _, sec := range others {
 		min, max := objectiveBounds(p, sec, sopts...)
 		step := (max - min) / float64(epsilonSteps)
@@ -124,7 +125,7 @@ func solveParetoEpsilon(
 			eps := min + float64(i)*step
 			addEpsilonConstraint(p, sec, eps)
 
-			sol, err := solver.Solve(p, sopts...)
+			sol, err := solver.Solve(p, with(*cfg))
 			if err != nil {
 				continue
 			}

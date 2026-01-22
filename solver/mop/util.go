@@ -194,7 +194,7 @@ func almostEqual(a, b []float64) bool {
 
 func defaultSimplexWeights(n int) [][]float64 {
 	weights := make([][]float64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		w := make([]float64, n)
 		w[i] = 1
 		weights[i] = w

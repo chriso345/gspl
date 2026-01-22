@@ -20,6 +20,7 @@ var lastError string
 
 // Ensure references to solver option helpers are present so the bindings
 // export-check (heuristic) can detect coverage of those symbols.
+// FIXME: These should be implemented fully eventually.
 var (
 	_ = solver.NewSolverConfig
 	_ = solver.WithTolerance
@@ -31,6 +32,9 @@ var (
 	_ = solver.WithBranch
 	_ = solver.WithHeuristic
 	_ = solver.WithCut
+
+	_ = mop.WithEpsilonSteps
+	_ = mop.WithWeightedSums
 )
 
 type program struct {
