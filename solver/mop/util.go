@@ -147,8 +147,6 @@ func addEpsilonConstraint(
 }
 
 func uniqueSolutions(sols []*MopSolution) []*MopSolution {
-	const tol = 1e-9
-
 	uniq := make([]*MopSolution, 0, len(sols))
 	for _, s := range sols {
 		dup := false
@@ -164,7 +162,7 @@ func uniqueSolutions(sols []*MopSolution) []*MopSolution {
 	}
 
 	// Sort by first objective for stable ordering
-	for i := 0; i < len(uniq); i++ {
+	for i := range len(uniq) {
 		for j := i + 1; j < len(uniq); j++ {
 			if uniq[j].ObjectiveValues[0] < uniq[i].ObjectiveValues[0] {
 				uniq[i], uniq[j] = uniq[j], uniq[i]
