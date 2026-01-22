@@ -4,8 +4,6 @@ set -euo pipefail
 # Move to the repository root reliably
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
-echo "$ROOT_DIR"
-ls -la
 
 # Directories/files to exclude from scanning for exported functions
 EXCLUDE_DIRS=(
@@ -29,23 +27,19 @@ for f in "${EXCLUDE_FILES[@]}"; do
 done
 
 # Find exported top-level functions
-if command -v rg >/dev/null 2>&1; then
-  exported=$(rg --no-heading --line-number '^func\s+[A-Z][A-Za-z0-9_]*' "${RG_EXCLUDES[@]}" . |
-    sed -E 's/^(.+):[0-9]+:func\s+([A-Z][A-Za-z0-9_]*).*/\1:\2/' |
-    sort -u)
-else
-  GREP_EXCLUDES=()
-  for d in "${EXCLUDE_DIRS[@]}"; do
-    GREP_EXCLUDES+=(--exclude-dir="$d")
-  done
-  for f in "${EXCLUDE_FILES[@]}"; do
-    GREP_EXCLUDES+=(--exclude="$f")
-  done
+GREP_EXCLUDES=()
+for d in "${EXCLUDE_DIRS[@]}"; do
+  GREP_EXCLUDES+=(--exclude-dir="$d")
+done
+for f in "${EXCLUDE_FILES[@]}"; do
+  GREP_EXCLUDES+=(--exclude="$f")
+done
 
-  exported=$(grep -R --line-number -h -E "^func\s+[A-Z][A-Za-z0-9_]*" "${GREP_EXCLUDES[@]}" . |
-    sed -E 's/^(.+):[0-9]+:func\s+([A-Z][A-Za-z0-9_]*).*/\1:\2/' |
-    sort -u)
-fi
+exported=$(grep -R -n "${GREP_EXCLUDES[@]}" -E '^func[[:space:]]+[A-Z][A-Za-z0-9_]*' . |
+  while IFS=: read -r file _ rest; do
+    fn=$(printf '%s' "$rest" | sed -E 's/^func[[:space:]]+([A-Z][A-Za-z0-9_]*).*/\1/')
+    printf '%s:%s\n' "$file" "$fn"
+  done | sort -u)
 
 if [ -z "$exported" ]; then
   echo "No exported functions found."
