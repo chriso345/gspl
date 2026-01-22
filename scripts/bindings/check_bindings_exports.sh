@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Move to the repository root reliably
+ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
 
+# Directories/files to exclude from scanning for exported functions
 EXCLUDE_DIRS=(
   ".github"
-  "bindings"
   "cmd"
   "examples"
   "internal"
@@ -16,7 +17,7 @@ EXCLUDE_FILES=(
   "*_test.go"
 )
 
-# Build rg/glob exclude arguments
+# Build ripgrep/glob exclude arguments
 RG_EXCLUDES=()
 for d in "${EXCLUDE_DIRS[@]}"; do
   RG_EXCLUDES+=(--glob "!$d/**")
@@ -25,11 +26,9 @@ for f in "${EXCLUDE_FILES[@]}"; do
   RG_EXCLUDES+=(--glob "!$f")
 done
 
-# Find exported top-level functions with file context
+# Find exported top-level functions
 if command -v rg >/dev/null 2>&1; then
-  exported=$(rg --no-heading --line-number \
-    '^func\s+[A-Z][A-Za-z0-9_]*' \
-    "${RG_EXCLUDES[@]}" . |
+  exported=$(rg --no-heading --line-number '^func\s+[A-Z][A-Za-z0-9_]*' "${RG_EXCLUDES[@]}" . |
     sed -E 's/^(.+):[0-9]+:func\s+([A-Z][A-Za-z0-9_]*).*/\1:\2/' |
     sort -u)
 else
@@ -41,9 +40,7 @@ else
     GREP_EXCLUDES+=(--exclude="$f")
   done
 
-  exported=$(grep -R --line-number -h \
-    -E "^func\s+[A-Z][A-Za-z0-9_]*" \
-    "${GREP_EXCLUDES[@]}" . |
+  exported=$(grep -R --line-number -h -E "^func\s+[A-Z][A-Za-z0-9_]*" "${GREP_EXCLUDES[@]}" . |
     sed -E 's/^(.+):[0-9]+:func\s+([A-Z][A-Za-z0-9_]*).*/\1:\2/' |
     sort -u)
 fi
@@ -53,11 +50,15 @@ if [ -z "$exported" ]; then
   exit 0
 fi
 
+# Absolute paths to bindings files
+BINDINGS_GO="$ROOT_DIR/bindings/c/gspl.go"
+BINDINGS_H="$ROOT_DIR/bindings/c/gspl.h"
+
 declare -A missing_by_file
 missing_count=0
 
 while IFS=: read -r file fn; do
-  if ! rg -q "\b$fn\b" bindings/c/gspl.go bindings/c/gspl.h 2>/dev/null; then
+  if ! rg -q "\b$fn\b" "$BINDINGS_GO" "$BINDINGS_H" 2>/dev/null; then
     missing_by_file["$file"]+=$'\n'"  - $fn"
     missing_count=$((missing_count + 1))
   fi
