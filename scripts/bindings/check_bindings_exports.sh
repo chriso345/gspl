@@ -17,15 +17,6 @@ EXCLUDE_FILES=(
   "*_test.go"
 )
 
-# Build ripgrep/glob exclude arguments
-RG_EXCLUDES=()
-for d in "${EXCLUDE_DIRS[@]}"; do
-  RG_EXCLUDES+=(--glob "!$d/**")
-done
-for f in "${EXCLUDE_FILES[@]}"; do
-  RG_EXCLUDES+=(--glob "!$f")
-done
-
 # Find exported top-level functions
 GREP_EXCLUDES=()
 for d in "${EXCLUDE_DIRS[@]}"; do
@@ -54,7 +45,7 @@ declare -A missing_by_file
 missing_count=0
 
 while IFS=: read -r file fn; do
-  if ! rg -q "\b$fn\b" "$BINDINGS_GO" "$BINDINGS_H" 2>/dev/null; then
+  if ! grep -q -w -- "$fn" "$BINDINGS_GO" "$BINDINGS_H" 2>/dev/null; then
     missing_by_file["$file"]+=$'\n'"  - $fn"
     missing_count=$((missing_count + 1))
   fi
