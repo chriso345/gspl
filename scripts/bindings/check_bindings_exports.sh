@@ -4,6 +4,8 @@ set -euo pipefail
 # Move to the repository root reliably
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
+echo "$ROOT_DIR"
+ls -la
 
 # Directories/files to exclude from scanning for exported functions
 EXCLUDE_DIRS=(
