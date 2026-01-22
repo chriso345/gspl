@@ -1,0 +1,43 @@
+name: Conventional Commit Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate_pr_title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate PR title
+        id: check_title
+        run: |
+          #!/bin/bash
+          set -euo pipefail
+
+          # Allowed prefixes
+          PREFIXES=("feat" "fix" "docs" "style" "refactor" "test" "chore")
+
+          # Get PR title
+          PR_TITLE=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
+          echo "PR title: $PR_TITLE"
+
+          # Regex for conventional commit: prefix[optional scope][optional !]: description
+          PREFIX_PATTERN=$(IFS="|"; echo "${PREFIXES[*]}")
+          REGEX="^(${PREFIX_PATTERN})(\\([a-zA-Z0-9_-]+\\))?(!)?: .+"
+
+          if [[ "$PR_TITLE" =~ $REGEX ]]; then
+            echo "PR title follows Conventional Commits."
+          else
+            echo "❌ PR title does NOT follow Conventional Commits."
+            echo "Expected format: <type>[optional scope][!]: description"
+            echo "Allowed types: ${PREFIXES[*]}"
+            echo "Examples:"
+            echo "  feat: add login endpoint"
+            echo "  fix(auth)!: fix critical bug"
+            exit 1
+          fi
