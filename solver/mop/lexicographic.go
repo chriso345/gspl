@@ -1,25 +1,18 @@
-package solver
+package mop
 
 import (
-	"github.com/chriso345/gspl/internal/common"
 	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/lp"
+	"github.com/chriso345/gspl/solver"
 	"gonum.org/v1/gonum/mat"
 )
-
-// MopSolution contains the result of a multi-objective optimization.
-type MopSolution struct {
-	ObjectiveValues []float64
-	PrimalSolution  *mat.VecDense
-	Status          common.SolverStatus
-}
 
 // SolveLexicographic solves the given multi-objective linear program using
 // a lexicographic approach. This method optimises the objectives in a predefined
 // order, ensuring that the optimal value of each objective is achieved before
 // moving on to the next. It returns a single MopSolution representing the optimal
 // solution that respects the priority of objectives.
-func SolveLexicographic(prog *lp.LinearProgram, opts ...SolverOption) (*MopSolution, error) {
+func SolveLexicographic(prog *lp.LinearProgram, opts ...solver.SolverOption) (*MopSolution, error) {
 	if prog.Objective == nil {
 		return nil, errors.New(errors.ErrInvalidInput, "primary objective must be defined", nil)
 	}
@@ -58,7 +51,7 @@ func SolveLexicographic(prog *lp.LinearProgram, opts ...SolverOption) (*MopSolut
 		p.RHS = mat.NewVecDense(1, []float64{0})
 	}
 
-	sol, err := Solve(&p, opts...)
+	sol, err := solver.Solve(&p, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +102,7 @@ func SolveLexicographic(prog *lp.LinearProgram, opts ...SolverOption) (*MopSolut
 			}
 		}
 		p.Objective = sec
-		lastSol, err = Solve(&p, opts...)
+		lastSol, err = solver.Solve(&p, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -118,12 +111,4 @@ func SolveLexicographic(prog *lp.LinearProgram, opts ...SolverOption) (*MopSolut
 	}
 
 	return &MopSolution{ObjectiveValues: objVals, PrimalSolution: lastSol.PrimalSolution, Status: lastSol.Status}, nil
-}
-
-// SolvePareto solves the given multi-objective linear program using a Pareto
-// approach. This method seeks to find a set of solutions that represent the best
-// trade-offs among the objectives, known as the Pareto front. It returns a slice
-// of MopSolution, each representing a non-dominated solution in the objective space.
-func SolvePareto(prog *lp.LinearProgram, opts ...SolverOption) ([]*MopSolution, error) {
-	return nil, nil
 }
