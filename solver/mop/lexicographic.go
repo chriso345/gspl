@@ -7,11 +7,10 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// SolveLexicographic solves the given multi-objective linear program using
-// a lexicographic approach. This method optimises the objectives in a predefined
-// order, ensuring that the optimal value of each objective is achieved before
-// moving on to the next. It returns a single MopSolution representing the optimal
-// solution that respects the priority of objectives.
+// SolveLexicographic solves the given multi-objective [lp.LinearProgram] using
+// a lexicographic approach. Objectives are optimised in priority order so that
+// each objective's optimal value is fixed before proceeding to the next. It
+// returns a single [MopSolution] that respects the provided objective ordering.
 func SolveLexicographic(prog *lp.LinearProgram, opts ...solver.SolverOption) (*MopSolution, error) {
 	if prog.Objective == nil {
 		return nil, errors.New(errors.ErrInvalidInput, "primary objective must be defined", nil)

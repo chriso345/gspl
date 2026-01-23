@@ -7,10 +7,10 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// SolvePareto solves the given multi-objective linear program using a Pareto
-// approach. This method seeks to find a set of solutions that represent the best
-// trade-offs among the objectives, known as the Pareto front. It returns a slice
-// of MopSolution, each representing a non-dominated solution in the objective space.
+// SolvePareto solves the given multi-objective [lp.LinearProgram] using a Pareto
+// approach. The function returns a slice of [*MopSolution], each representing a
+// non-dominated solution on the Pareto front. The behavior depends on the
+// selected [ParetoMethod].
 func SolvePareto(
 	prog *lp.LinearProgram,
 	method ParetoMethod,

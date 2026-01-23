@@ -6,6 +6,9 @@ import (
 )
 
 // MopSolution contains the result of a multi-objective optimization.
+//
+// The [MopSolution] holds objective values (in the same order as provided
+// in the program), the primal solution vector, and the [common.SolverStatus].
 type MopSolution struct {
 	ObjectiveValues []float64
 	PrimalSolution  *mat.VecDense

@@ -81,5 +81,5 @@ run *args:
 
 # Open the documentation in the browser
 [group("Documentation")]
-docs:
+site:
     pkgsite

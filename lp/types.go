@@ -2,28 +2,30 @@ package lp
 
 import "github.com/chriso345/gspl/internal/common"
 
-// LpExpression represents the LHS of a linear expression
+// LpExpression represents the left-hand side of a linear expression and
+// holds a slice of [LpTerm].
 type LpExpression struct {
 	Terms []LpTerm
 }
 
-// NewExpression creates a new LpExpression with the given terms
+// NewExpression creates a new [LpExpression] with the given terms.
 func NewExpression(terms []LpTerm) LpExpression {
 	return LpExpression{terms}
 }
 
-// LpTerm represents a term in a linear expression, consisting of a coefficient and a variable.
+// LpTerm represents a term in a linear expression, consisting of a coefficient and a [LpVariable].
 type LpTerm struct {
 	Coefficient float64
 	Variable    LpVariable // These get added to the variable list in the LinearProgram??
 }
 
-// NewTerm creates a new LpTerm with the given coefficient and variable.
+// NewTerm returns a new [LpTerm] with the given coefficient and [LpVariable].
 func NewTerm(coefficient float64, variable LpVariable) LpTerm {
 	return LpTerm{coefficient, variable}
 }
 
-// LpVariable represents a variable in a linear programming problem.
+// LpVariable represents a variable in a linear programming problem and
+// includes metadata such as slack/artificial flags and its [LpCategory].
 type LpVariable struct {
 	Name         string
 	IsSlack      bool
@@ -31,7 +33,7 @@ type LpVariable struct {
 	Category     LpCategory
 }
 
-// NewVariable creates a new LpVariable with the given name.
+// NewVariable creates a new [LpVariable] with the given name and optional [LpCategory].
 func NewVariable(name string, category ...LpCategory) LpVariable {
 	if len(category) > 1 {
 		panic("Only one LpCategory can be specified for a variable")
@@ -42,7 +44,8 @@ func NewVariable(name string, category ...LpCategory) LpVariable {
 	return LpVariable{name, false, false, category[0]}
 }
 
-// LpCategory represents the category of a variable in a linear programming problem.
+// LpCategory is an alias for [common.VarCategory] and classifies variables
+// (continuous, integer, binary).
 type LpCategory = common.VarCategory
 
 const (
@@ -51,7 +54,8 @@ const (
 	LpCategoryBinary
 )
 
-// LpSense represents the sense of the linear programming problem, either minimization or maximization.
+// LpSense represents the problem sense for a [LinearProgram].
+// Possible values are [LpMinimise] and [LpMaximise].
 type LpSense int
 
 const (
@@ -59,7 +63,8 @@ const (
 	LpMaximise
 )
 
-// LpStatus represents the current status of solving the linear programming problem.
+// LpStatus represents the current status of solving a [LinearProgram].
+// Values include [LpStatusNotSolved], [LpStatusOptimal], [LpStatusInfeasible], and [LpStatusUnbounded].
 type LpStatus int
 
 const (
@@ -79,7 +84,8 @@ func (s LpStatus) String() string {
 	}[s]
 }
 
-// LpConstraintType represents the type of a constraint in a linear programming problem.
+// LpConstraintType represents the relation used in a constraint (<=, =, >=).
+// Constants are [LpConstraintLE], [LpConstraintEQ], and [LpConstraintGE].
 type LpConstraintType int
 
 const (

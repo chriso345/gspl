@@ -12,18 +12,19 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Solution contains the results returned by Solve.
+// Solution contains the results returned by [Solve].
 //
-// The returned Solution provides a snapshot of the computed objective value,
+// The returned [Solution] provides a snapshot of the computed objective value,
 // the primal solution vector, and a status code describing optimality,
-// infeasibility, or unboundedness. The Solution contains copies of data
+// infeasibility, or unboundedness. The [Solution] contains copies of data
 // that callers can safely inspect without referencing the original
-// lp.LinearProgram.
+// [lp.LinearProgram].
 //
 // Note: for performance the solver may temporarily reuse internal SCF fields
-// that point into the provided LinearProgram; therefore callers MUST NOT mutate
-// the provided *lp.LinearProgram concurrently with a call to Solve.
-// To cancel a long-running solve pass a context using the WithContext option.
+// that point into the provided [lp.LinearProgram]; therefore callers MUST NOT
+// mutate the provided [*lp.LinearProgram] concurrently with a call to
+// [Solve]. To cancel a long-running solve pass a context using the
+// [WithContext] option.
 type Solution struct {
 	ObjectiveValue float64
 	PrimalSolution *mat.VecDense
@@ -32,12 +33,12 @@ type Solution struct {
 
 // Solve solves the given linear program and returns a Solution and an error.
 //
-// The function returns a populated *Solution on success, or a non-nil error if
+// The function returns a populated [*Solution] on success, or a non-nil error if
 // the solve failed. Solve respects context cancellation when a context is
-// provided via SolverOption (WithContext). It may temporarily link into fields
-// of the provided LinearProgram for efficiency; therefore the provided program
+// provided via SolverOption ([WithContext]). It may temporarily link into fields
+// of the provided [lp.LinearProgram] for efficiency; therefore the provided program
 // must not be mutated concurrently. Solve is safe to call concurrently as long
-// as each goroutine uses a distinct *lp.LinearProgram.
+// as each goroutine uses a distinct [*lp.LinearProgram].
 func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 	// Apply options
 	options := NewSolverConfig(opts...)
@@ -132,7 +133,7 @@ func Solve(prog *lp.LinearProgram, opts ...SolverOption) (*Solution, error) {
 	return sol, nil
 }
 
-// newSCF creates a new SCF instance for the linear program
+// newSCF constructs a [*common.StandardComputationalForm] for the given [lp.LinearProgram].
 func newSCF(prog *lp.LinearProgram) *common.StandardComputationalForm {
 	slackIndices := make([]int, len(prog.Vars))
 	numPrimals := 0
@@ -177,7 +178,8 @@ func newSCF(prog *lp.LinearProgram) *common.StandardComputationalForm {
 	}
 }
 
-// newIP creates a new IP instance for the linear program
+// newIP constructs a [*common.IntegerProgram] for the given [lp.LinearProgram]
+// and initializes BestObj according to the program sense.
 func newIP(prog *lp.LinearProgram) *common.IntegerProgram {
 	ip := &common.IntegerProgram{
 		SCF: newSCF(prog),
