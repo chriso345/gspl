@@ -7,7 +7,6 @@ import (
 	"github.com/chriso345/gspl/lp"
 )
 
-// Example_Solve demonstrates solving a simple LP using [Solve].
 func ExampleSolve() {
 	// Build a trivial LP: minimize x subject to x >= 1
 	x := lp.NewVariable("x")
@@ -25,7 +24,6 @@ func ExampleSolve() {
 	// Output: obj=1, x=1, status=Optimal
 }
 
-// ExampleNewSolverConfig demonstrates passing multiple [With*] options to [Solve].
 func ExampleNewSolverConfig() {
 	x := lp.NewVariable("x")
 	p := lp.NewLinearProgram("t", []lp.LpVariable{x})
@@ -37,7 +35,6 @@ func ExampleNewSolverConfig() {
 	// Output: 0.0000 Optimal
 }
 
-// ExampleWithContext demonstrates attaching a context via [WithContext] and using it with [Solve].
 func ExampleWithContext() {
 	x := lp.NewVariable("x")
 	p := lp.NewLinearProgram("t", []lp.LpVariable{x})
@@ -49,7 +46,6 @@ func ExampleWithContext() {
 	// Output: true
 }
 
-// ExampleWithTolerance demonstrates using [WithTolerance] with [Solve].
 func ExampleWithTolerance() {
 	// trivial LP minimize x subject to x >= 0
 	x := lp.NewVariable("x")
@@ -62,7 +58,6 @@ func ExampleWithTolerance() {
 	// Output: 0.00000
 }
 
-// ExampleWithMaxIterations demonstrates using [WithMaxIterations] with [Solve].
 func ExampleWithMaxIterations() {
 	x := lp.NewVariable("x")
 	p := lp.NewLinearProgram("t", []lp.LpVariable{x})
@@ -74,7 +69,6 @@ func ExampleWithMaxIterations() {
 	// Output: Optimal
 }
 
-// ExampleWithGapSensitivity demonstrates using [WithGapSensitivity] with [Solve].
 func ExampleWithGapSensitivity() {
 	x := lp.NewVariable("x")
 	p := lp.NewLinearProgram("t", []lp.LpVariable{x})
@@ -86,7 +80,6 @@ func ExampleWithGapSensitivity() {
 	// Output: 0.0
 }
 
-// ExampleWithLogging demonstrates using [WithLogging] with [Solve].
 func ExampleWithLogging() {
 	x := lp.NewVariable("x")
 	p := lp.NewLinearProgram("t", []lp.LpVariable{x})

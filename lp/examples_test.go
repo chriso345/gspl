@@ -4,7 +4,6 @@ import (
 	"fmt"
 )
 
-// Example_NewLinearProgram demonstrates creating a [LinearProgram] and adding an objective and constraint.
 func ExampleNewLinearProgram() {
 	x := NewVariable("x")
 	y := NewVariable("y")
@@ -16,7 +15,6 @@ func ExampleNewLinearProgram() {
 	// Output: Example LP
 }
 
-// Example_NewVariable demonstrates creating variables with different [LpCategory] values.
 func ExampleNewVariable() {
 	x := NewVariable("x")
 	y := NewVariable("y", LpCategoryInteger)
@@ -25,7 +23,6 @@ func ExampleNewVariable() {
 	// Output: x 0 y 1 z 2
 }
 
-// ExampleNewTerm demonstrates [NewTerm].
 func ExampleNewTerm() {
 	x := NewVariable("x")
 	t := NewTerm(3, x)
@@ -33,7 +30,6 @@ func ExampleNewTerm() {
 	// Output: 3 x
 }
 
-// ExampleNewExpression demonstrates [NewExpression].
 func ExampleNewExpression() {
 	x := NewVariable("x")
 	t := NewTerm(2, x)
@@ -42,7 +38,6 @@ func ExampleNewExpression() {
 	// Output: 1
 }
 
-// ExampleLinearProgram_AddObjective shows [LinearProgram].AddObjective negating coefficients for [LpMaximise].
 func ExampleLinearProgram_AddObjective() {
 	x := NewVariable("x")
 	y := NewVariable("y")
@@ -53,7 +48,6 @@ func ExampleLinearProgram_AddObjective() {
 	// Output: -2 3 true
 }
 
-// ExampleLinearProgram_AddConstraint shows adding a GE constraint and the slack/surplus column.
 func ExampleLinearProgram_AddConstraint() {
 	x := NewVariable("x")
 	y := NewVariable("y")
