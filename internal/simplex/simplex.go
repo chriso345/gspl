@@ -1,6 +1,7 @@
 package simplex
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/chriso345/gspl/internal/common"
@@ -129,7 +130,7 @@ func Simplex(scf *common.StandardComputationalForm, config *common.SolverConfig)
 }
 
 func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
-	_maxIter := 1000 // Simple safeguard
+	_maxIter := config.MaxIterations
 
 	n := sm.n
 	if phase == 1 {
@@ -150,12 +151,58 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		cb.SetVec(i, sm.c.AtVec(index))
 	}
 
-	for range _maxIter {
+	q := 0
+	for q = range _maxIter {
 		xb := mat.NewVecDense(sm.m, nil) // Basic solution
 		err := xb.SolveVec(B, sm.b)
 		if err != nil {
-			// Basis is singular, return error
-			return errors.New(errors.ErrNumericalFailure, "error solving for basic solution", err)
+			// If we're in Phase 1, try to repair the basis by swapping in non-basic
+			// original columns (similar to Phase 2 repair) before failing.
+			if phase == 1 && sm.A != nil {
+				repaired := false
+				for i := 0; i < sm.m && !repaired; i++ {
+					for j := 0; j < sm.n; j++ {
+						if contains(sm.indices, j) {
+							continue
+						}
+						// Prefer columns with non-zero in this row
+						if sm.A.At(i, j) == 0 {
+							continue
+						}
+						tempIdx := mat.VecDenseCopyOf(sm.indices)
+						tempIdx.SetVec(i, float64(j))
+						tempB := matrix.ExtractColumns(sm.A, tempIdx)
+						// Try solving with this candidate basis
+						tempX := mat.NewVecDense(sm.m, nil)
+						if err2 := tempX.SolveVec(tempB, sm.b); err2 == nil {
+							// Accept the repair
+							sm.indices = tempIdx
+							sm.B = tempB
+							B = sm.B
+							// Recompute cb to reflect new basis costs
+							for ii := range sm.m {
+								idx := int(sm.indices.AtVec(ii))
+								cb.SetVec(ii, sm.c.AtVec(idx))
+							}
+							repaired = true
+							break
+						}
+					}
+				}
+				if repaired {
+					// retry solving
+					err = xb.SolveVec(B, sm.b)
+					if err == nil {
+						// continue normally
+					} else {
+						return errors.New(errors.ErrNumericalFailure, "error solving for basic solution", err)
+					}
+				} else {
+					return errors.New(errors.ErrNumericalFailure, "error solving for basic solution", err)
+				}
+			} else {
+				return errors.New(errors.ErrNumericalFailure, "error solving for basic solution", err)
+			}
 		}
 
 		// Finding the leaving variable
@@ -167,6 +214,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		if err != nil {
 			// Basis is singular, return error
 			return errors.New(errors.ErrNumericalFailure, "error solving for dual variables", err)
+
 		}
 
 		fe := enteringVariable{
@@ -244,7 +292,8 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 		}
 
 	}
-	return errors.New(errors.ErrNumericalFailure, "max iterations reached in RSM", nil)
+	str := fmt.Sprintf("error max iterations reached (%d)/(%d) in RSM", q+1, _maxIter)
+	return errors.New(errors.ErrNumericalFailure, str, nil)
 }
 
 func findEnter(fe *enteringVariable) error {
