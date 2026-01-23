@@ -1,4 +1,4 @@
-package gmpl
+package mps
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/chriso345/gspl/solver"
 )
 
-func TestParseGMPLExampleFile(t *testing.T) {
-	b, err := os.ReadFile("../testdata/example.gmpl")
+func TestParseExampleFile(t *testing.T) {
+	b, err := os.ReadFile("../testdata/example.mps")
 	if err != nil {
 		t.Fatalf("read example: %v", err)
 	}
@@ -34,12 +34,12 @@ func TestParseGMPLExampleFile(t *testing.T) {
 	for _, v := range m.LP.Vars {
 		found[v.Name] = true
 	}
-	if !found["x1"] || !found["x2"] {
-		t.Fatalf("expected x1 and x2 to be present, vars: %v", m.LP.Vars)
+	if !found["X1"] || !found["X2"] {
+		t.Fatalf("expected X1 and X2 to be present, vars: %v", m.LP.Vars)
 	}
-	// objective should be maximise
-	if m.LP.Sense != lp.LpMaximise {
-		t.Fatalf("expected maximise sense, got %v", m.LP.Sense)
+	// objective should be minimise for MPS default
+	if m.LP.Sense != lp.LpMinimise {
+		t.Fatalf("expected minimise sense, got %v", m.LP.Sense)
 	}
 
 	// Solve and validate optimal solution
@@ -50,26 +50,19 @@ func TestParseGMPLExampleFile(t *testing.T) {
 	if sol == nil {
 		t.Fatalf("expected non-nil solution")
 	}
-	// Expect x1=x2=4.5 and objective 22.5
+	// For the example MPS: expect x1=0 (bounded by up 4, but objective min -> choose 0) and x2=10 (from LIM2 >=10)
 	if sol.PrimalSolution.Len() < 2 {
 		t.Fatalf("unexpected solution length: %d", sol.PrimalSolution.Len())
 	}
 	x1 := sol.PrimalSolution.AtVec(0)
 	x2 := sol.PrimalSolution.AtVec(1)
-	if diff := x1 - 4.5; diff < -1e-6 || diff > 1e-6 {
-		t.Fatalf("unexpected x1: %v", x1)
+	if diff := x1 - 0.0; diff < -1e-6 || diff > 1e-6 {
+		t.Fatalf("unexpected X1: %v", x1)
 	}
-	if diff := x2 - 4.5; diff < -1e-6 || diff > 1e-6 {
-		t.Fatalf("unexpected x2: %v", x2)
+	if diff := x2 - 10.0; diff < -1e-6 || diff > 1e-6 {
+		t.Fatalf("unexpected X2: %v", x2)
 	}
-	if diff := sol.ObjectiveValue - 22.5; diff < -1e-6 || diff > 1e-6 {
+	if diff := sol.ObjectiveValue - 20.0; diff < -1e-6 || diff > 1e-6 {
 		t.Fatalf("unexpected objective: %v", sol.ObjectiveValue)
-	}
-}
-
-func TestParseExpressionInvalidCoefficient(t *testing.T) {
-	_, err := parseExpression("a* x1")
-	if err == nil {
-		t.Fatalf("expected error when parsing invalid coefficient")
 	}
 }

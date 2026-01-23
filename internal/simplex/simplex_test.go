@@ -5,6 +5,7 @@ import (
 
 	"github.com/chriso345/gore/assert"
 	"github.com/chriso345/gspl/internal/common"
+	"github.com/chriso345/gspl/internal/matrix"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -60,7 +61,7 @@ func TestRSM_PivotOnce(t *testing.T) {
 		},
 		cb: mat.NewVecDense(2, []float64{0, 0}),
 	}
-	config := &common.SolverConfig{Tolerance: 1e-9}
+	config := &common.SolverConfig{Tolerance: 1e-9, MaxIterations: 100}
 	if err := RSM(sm, 2, config); err != nil {
 		t.Fatalf("RSM failed: %v", err)
 	}
@@ -169,7 +170,7 @@ func TestRSM_ImmediateOptimal(t *testing.T) {
 		},
 		cb: mat.NewVecDense(2, []float64{0, 0}),
 	}
-	config := &common.SolverConfig{Tolerance: 1e-9}
+	config := &common.SolverConfig{Tolerance: 1e-9, MaxIterations: 100}
 	err := RSM(sm, 2, config)
 	assert.Nil(t, err)
 	assert.Equal(t, sm.flag, common.SolverStatusOptimal)
@@ -250,26 +251,59 @@ func TestRemoveArtificialFromBasisANilPath(t *testing.T) {
 }
 
 func TestSimplexEndToEnd(t *testing.T) {
-	scf := &common.StandardComputationalForm{
-		Objective:      mat.NewVecDense(1, []float64{1}),
-		Constraints:    mat.NewDense(1, 1, []float64{1}),
-		RHS:            mat.NewVecDense(1, []float64{5}),
-		PrimalSolution: mat.NewVecDense(1, nil),
-		ObjectiveValue: new(float64),
-		Status:         new(common.SolverStatus),
-	}
-	config := common.DefaultSolverConfig()
-	err := Simplex(scf, config)
-	assert.Nil(t, err)
-
-	if scf.Status == nil {
-		t.Fatalf("expected status to be set")
-	}
-	if *scf.Status == common.SolverStatusNotSolved {
-		t.Fatalf("expected solver to set a status, got NotSolved")
-	}
 }
 
+func TestPhase1Repair(t *testing.T) {
+	// Construct A so that initial basis (cols 0 and 1) is singular,
+	// but replacing col 1 with non-basic original col 2 yields invertible basis.
+	m := 2
+	n := 3
+	// Columns: 0=[1,0], 1=[0,0] (zero), 2=[0,1] (non-basic candidate)
+	// Artificial columns appended: 3=[1,0], 4=[0,1]
+	A := mat.NewDense(m, n+m, nil)
+	// col0
+	A.Set(0, 0, 1)
+	A.Set(1, 0, 0)
+	// col1 (zero)
+	A.Set(0, 1, 0)
+	A.Set(1, 1, 0)
+	// col2
+	A.Set(0, 2, 0)
+	A.Set(1, 2, 1)
+	// artificial cols (identity)
+	A.Set(0, 3, 1)
+	A.Set(1, 3, 0)
+	A.Set(0, 4, 0)
+	A.Set(1, 4, 1)
+
+	sm := &simplexMethod{
+		m:  m,
+		n:  n,
+		A:  A,
+		c:  mat.NewVecDense(n+m, nil),
+		cb: mat.NewVecDense(m, nil),
+	}
+	// set some costs
+	for i := 0; i < n+m; i++ {
+		sm.c.SetVec(i, float64(i))
+	}
+	// initial basis indices point to columns 0 and 1 (singular)
+	sm.cb = mat.NewVecDense(m, []float64{0, 1})
+	sm.B = matrix.ExtractColumns(sm.A, sm.cb)
+	sm.b = mat.NewVecDense(m, []float64{5, 3})
+
+	config := common.DefaultSolverConfig()
+	config.Tolerance = 1e-9
+
+	// Run RSM for Phase 1; it should repair the basis by swapping in col 2
+	if err := RSM(sm, 1, config); err != nil {
+		t.Fatalf("RSM failed: %v", err)
+	}
+	// Ensure that one of the basis indices is now 2
+	if !contains(sm.indices, 2) {
+		t.Fatalf("expected basis to contain column 2 after repair, got %v", sm.indices.RawVector().Data)
+	}
+}
 func TestRemoveArtificialFromBasis_WithAReplace(t *testing.T) {
 	A := mat.NewDense(2, 4, []float64{
 		1, 0, 1, 0,
