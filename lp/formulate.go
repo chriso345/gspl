@@ -5,7 +5,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// AddObjective adds a new objective function to the LP model.
+// AddObjective sets the objective function of the [LinearProgram].
+// The provided expression defines the coefficients; sense selects [LpMinimise]
+// or [LpMaximise]. If [LpMaximise] is used coefficients are negated to convert
+// the problem to the solver's minimisation form and [LinearProgram].ObjectiveIsNegated
+// is set to avoid double-negation.
 func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 	lp.Sense = sense
 
@@ -37,7 +41,12 @@ func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 	}
 }
 
-// AddConstraint adds a new constraint to the LP model.
+// AddConstraint appends a constraint to the [LinearProgram].
+// expr is the left-hand side, conType is one of [LpConstraintLE], [LpConstraintEQ]
+// or [LpConstraintGE], and rhs is the right-hand side. The objective must be
+// defined before adding constraints. If rhs is negative the constraint is
+// inverted. For LE/GE constraints a slack or surplus variable is created and
+// the program matrices and objective are expanded.
 func (lp *LinearProgram) AddConstraint(expr LpExpression, conType LpConstraintType, rhs float64) {
 	if lp.Objective == nil {
 		panic("objective function must be defined before adding constraints")

@@ -32,7 +32,8 @@ type LinearProgram struct {
 	ObjectiveIsNegated bool
 }
 
-// NewLinearProgram Create a new Linear Program
+// NewLinearProgram creates a new [LinearProgram] with the provided description and variables.
+// The returned program's Status is initialized to [common.SolverStatusNotSolved].
 func NewLinearProgram(desc string, vars []LpVariable) LinearProgram {
 
 	lp := LinearProgram{
