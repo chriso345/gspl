@@ -11,6 +11,8 @@
 * Clean and idiomatic API for modeling and solving LPs.
 * Focused on numerical stability and usability.
 * Performs basic branch-and-bound techniques for pure integer problems.
+* Provides native multi-objective optimization support.
+* Builtin bindings for C and Python (coming soon).
 
 `gspl` is ideal for embedding linear optimization into Go-based software.
 
@@ -28,95 +30,7 @@ go get github.com/chriso345/gspl
 
 ## Usage
 
-```go
-package main
-
-import (
-  "fmt"
-
-  "github.com/chriso345/gspl/lp"
-  "github.com/chriso345/gspl/solver"
-)
-
-func main() {
-  // Create decision variables
-  variables := []lp.LpVariable{
-    lp.NewVariable("x1"),
-    lp.NewVariable("x2"),
-    lp.NewVariable("x3"),
-  }
-
-  x1 := &variables[0]
-  x2 := &variables[1]
-  x3 := &variables[2]
-
-  // Objective function: Minimize -6 * x1 + 7 * x2 + 4 * x3
-  objective := lp.NewExpression([]lp.LpTerm{
-    lp.NewTerm(-6, *x1),
-    lp.NewTerm(7, *x2),
-    lp.NewTerm(4, *x3),
-  })
-
-  // Set up the LP problem
-  example := lp.NewLinearProgram("README Example", variables)
-  example.AddObjective(lp.LpMinimise, objective)
-
-  // Add constraints
-  example.AddConstraint(lp.NewExpression([]lp.LpTerm{
-    lp.NewTerm(2, *x1),
-    lp.NewTerm(5, *x2),
-    lp.NewTerm(-1, *x3),
-  }), lp.LpConstraintLE, 18)
-
-  example.AddConstraint(lp.NewExpression([]lp.LpTerm{
-    lp.NewTerm(1, *x1),
-    lp.NewTerm(-1, *x2),
-    lp.NewTerm(-2, *x3),
-  }), lp.LpConstraintLE, -14)
-
-  example.AddConstraint(lp.NewExpression([]lp.LpTerm{
-    lp.NewTerm(3, *x1),
-    lp.NewTerm(2, *x2),
-    lp.NewTerm(2, *x3),
-  }), lp.LpConstraintEQ, 26)
-
-  // Print the current problem
-  fmt.Printf("%s\n", example.String())
-
-  // Solve it
-  sol, err := solver.Solve(&example)
-  if err != nil {
-    fmt.Println("solve error:", err)
-    return
-  }
-  fmt.Printf("Optimal Objective Value: %.2f\n", sol.ObjectiveValue)
-  fmt.Printf("Primal Solution: %v\n", sol.PrimalSolution.RawVector().Data)
-}
-```
-
-### What's Happening?
-
-We're setting up a linear program to:
-
-1. **Minimize**:
-   $-6x_1 + 7x_2 + 4x_3$
-2. **Subject to constraints**:
-
-   * $2x_1 + 5x_2 - x_3 \leq 18$
-   * $x_1 - x_2 - 2x_3 \leq -14$
-   * $3x_1 + 2x_2 + 2x_3 = 26$
-
-The solution will print the optimal values of the variables and the minimized objective value.
-
-See the [examples](examples) directory for other scenarios.
-
----
-
-## Performance
-
-A small benchmark is included (go test -bench ./solver) that measures solve performance on a tiny LP; results will vary by CPU and Go version. The solver is optimized for minimal allocations in the revised simplex implementation and supports cancellation via context passed with SolverOption. For concurrent use, provide each goroutine its own *lp.LinearProgram; Solve may temporarily reference fields inside the provided program for performance and thus the same program must not be mutated concurrently during a Solve call.
-
-## API Overview
+Full examples are available in the [gspl_examples_test.go](gspl_examples_test.go) file and the [examples/](examples/) directory.
 
 ### Variables
 
@@ -129,13 +43,13 @@ variables := []lp.LpVariable{
 }
 ```
 
-You can access and pass them as pointers:
+You can access and pass them by value or take their address when needed:
 
 ```go
 x1 := &variables[0]
 ```
 
-Forcing integer constraints is done at the variable level:
+Forcing integer constraints is done when creating the variable:
 
 ```go
 variables := []lp.LpVariable{
@@ -150,16 +64,16 @@ Build the objective using terms:
 
 ```go
 objective := lp.NewExpression([]lp.LpTerm{
-  lp.NewTerm(5, *x1),
-  lp.NewTerm(3, *x2),
+  lp.NewTerm(5, variables[0]),
+  lp.NewTerm(3, variables[1]),
 })
 ```
 
 Add it to the LP:
 
 ```go
-lp := lp.NewLinearProgram("My LP", variables)
-lp.AddObjective(lp.LpMaximise, objective)
+prog := lp.NewLinearProgram("My LP", variables)
+prog.AddObjective(lp.LpMaximise, objective)
 ```
 
 ### Constraints
@@ -167,9 +81,9 @@ lp.AddObjective(lp.LpMaximise, objective)
 Each constraint uses an expression, a comparison type, and a right-hand side:
 
 ```go
-lp.AddConstraint(lp.NewExpression([]lp.LpTerm{
-  lp.NewTerm(2, *x1),
-  lp.NewTerm(3, *x2),
+prog.AddConstraint(lp.NewExpression([]lp.LpTerm{
+  lp.NewTerm(2, variables[0]),
+  lp.NewTerm(3, variables[1]),
 }), lp.LpConstraintLE, 10)
 ```
 
@@ -182,14 +96,33 @@ Constraint types:
 ### Solving
 
 ```go
-solution, err := solver.Solve(&lp)
+solution, err := solver.Solve(&prog)
 if err != nil {
   // handle error
 }
-solution.PrintSolution()
+fmt.Printf("obj=%.2f, x=%.2f\n", solution.ObjectiveValue, solution.PrimalSolution.AtVec(0))
 ```
 
 This solves the model and prints variable values and the objective result.
+
+### Multi-Objective Support
+
+gspl provides native multi-objective optimization capabilities via the `mop` package.
+
+```go
+x := lp.NewVariable("x")
+y := lp.NewVariable("y")
+p := lp.NewLinearProgram("Pareto", []lp.LpVariable{x, y})
+p.AddObjective(lp.LpMaximise, lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, x)}))
+p.AddObjective(lp.LpMaximise, lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, y)}))
+p.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, x), lp.NewTerm(1, y)}), lp.LpConstraintLE, 10)
+
+sols, err := mop.SolvePareto(&p, mop.ParetoWeightedSum, mop.WithWeightedSums([][]float64{{1, 0}, {0, 1}}))
+if err != nil {
+  fmt.Println("err", err)
+  return
+}
+```
 
 ---
 
