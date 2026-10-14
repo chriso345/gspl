@@ -15,7 +15,8 @@ func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *co
 
 // branchAndBoundParallel runs branch-and-bound in parallel using goroutines and channels.
 func branchAndBoundParallel(ip *common.IntegerProgram, rootNode *common.Node, config *common.SolverConfig) error {
-	nodes, err := branchFunc(rootNode)
+	branchFn := getBranchFunc(ip)
+	nodes, err := branchFn(rootNode)
 	if err != nil {
 		return errors.New(errors.ErrUnknown, "error in branching function", err)
 	}

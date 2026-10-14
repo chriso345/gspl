@@ -10,8 +10,6 @@ import (
 )
 
 func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) error {
-	// Define the strategies to be used in tree traversal
-	defineStrategies(ip)
 
 	// Solve at the root
 	rootNode := &common.Node{
@@ -130,17 +128,11 @@ func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 	return true
 }
 
-// defineStrategies sets the strategies to be used in the Branch and Bound algorithm
-func defineStrategies(ip *common.IntegerProgram) {
-	if ip.Branch == nil {
-		branchFunc = DefaultBranch
-	} else {
-		branchFunc = ip.Branch
+// getBranchFunc returns the branch function to be used in tree traversal
+func getBranchFunc(ip *common.IntegerProgram) common.BranchFunc {
+	if ip != nil && ip.Branch != nil {
+		return ip.Branch
 	}
-
-	// Heuristic and Cut functions are read directly from the IntegerProgram where required.
-	// If not provided, callers should use DefaultHeuristic/DefaultCut explicitly.
+	return DefaultBranch
 }
 
-// Strategy function variables
-var branchFunc common.BranchFunc

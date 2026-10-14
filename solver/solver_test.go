@@ -268,3 +268,38 @@ func TestSolve_ContextCancel(t *testing.T) {
 		t.Error("Expected nil solution on context cancellation")
 	}
 }
+
+func TestSolve_Concurrent(t *testing.T) {
+	const goroutines = 10
+	errs := make(chan error, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			objective := mat.NewVecDense(1, []float64{-1.0})
+			constraints := mat.NewDense(1, 1, []float64{1.0})
+			rhs := mat.NewVecDense(1, []float64{5.0})
+
+			prog := &lp.LinearProgram{
+				Sense:       lp.LpMaximise,
+				Objective:   objective,
+				Constraints: constraints,
+				RHS:         rhs,
+				ConTypes:    []lp.LpConstraintType{lp.LpConstraintLE},
+				Vars: []lp.LpVariable{
+					{Name: "x", Category: lp.LpVariableInteger},
+				},
+				Status: common.SolverStatusNotSolved,
+			}
+
+			_, err := Solve(prog)
+			errs <- err
+		}()
+	}
+
+	for i := 0; i < goroutines; i++ {
+		if err := <-errs; err != nil {
+			t.Errorf("concurrent solve error: %v", err)
+		}
+	}
+}
+
