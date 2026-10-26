@@ -43,30 +43,31 @@ func TestDefaultBranch_HappyPath(t *testing.T) {
 	assert.Equal(t, rhs2, 3.0)
 }
 
-func TestDefineStrategies_SetsDefaultsOrUsesProvided(t *testing.T) {
+func TestGetBranchFunc_SetsDefaultsOrUsesProvided(t *testing.T) {
 	ip := &common.IntegerProgram{}
-	defineStrategies(ip)
-	if branchFunc == nil {
-		t.Fatalf("expected branchFunc to be set")
+	fn := getBranchFunc(ip)
+	if fn == nil {
+		t.Fatalf("expected branch func to be set")
 	}
 
 	called := false
 	myBranch := func(n *common.Node) ([]*common.Node, error) { called = true; return nil, nil }
 	ip2 := &common.IntegerProgram{Branch: myBranch}
-	defineStrategies(ip2)
+	fn2 := getBranchFunc(ip2)
 	scf := &common.StandardComputationalForm{
 		PrimalSolution: mat.NewVecDense(1, []float64{0}),
 		Constraints:    mat.NewDense(1, 1, []float64{0}),
 		RHS:            mat.NewVecDense(1, []float64{0}),
 	}
-	_, err := branchFunc(&common.Node{SCF: scf})
+	_, err := fn2(&common.Node{SCF: scf})
 	if err != nil {
-		t.Fatalf("branchFunc returned error: %v", err)
+		t.Fatalf("branch func returned error: %v", err)
 	}
 	if !called {
-		t.Fatalf("expected branchFunc to call provided function")
+		t.Fatalf("expected branch func to call provided function")
 	}
 }
+
 
 func TestDefaultHeuristicAndCut(t *testing.T) {
 	vals, obj, ok := DefaultHeuristic(nil)
