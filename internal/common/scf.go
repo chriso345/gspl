@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/chriso345/gspl/internal/matrix"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -55,38 +56,31 @@ func (scf *StandardComputationalForm) Copy() *StandardComputationalForm {
 	}
 }
 
-// AddBranch adds a new constraint to the SCF
+// AddBranch adds the bound x_idx <= rhs (dir 1) or x_idx >= rhs (dir 2) to the SCF.
+//
+// Rows in the SCF are equalities, so the bound gets its own slack (dir 1) or
+// surplus (dir 2) column. Without it the branch would fix x_idx to rhs.
 func (scf *StandardComputationalForm) AddBranch(idx int, rhs float64, dir int) {
 	numRows, numCols := scf.Constraints.Dims()
-	newConstraints := mat.NewDense(numRows+1, numCols, nil)
-	newRHS := mat.NewVecDense(numRows+1, nil)
-	for i := range numRows {
-		for j := range numCols {
-			newConstraints.Set(i, j, scf.Constraints.At(i, j))
-		}
-		newRHS.SetVec(i, scf.RHS.AtVec(i))
-	}
-
-	for j := range numCols {
-		if j == idx {
-			switch dir {
-			case 1:
-				newConstraints.Set(numRows, j, 1)
-			case 2:
-				newConstraints.Set(numRows, j, -1)
-			}
-		} else {
-			newConstraints.Set(numRows, j, 0)
-		}
-	}
+	newConstraints := matrix.ResizeMatDense(scf.Constraints, numRows+1, numCols+1)
+	newConstraints.Set(numRows, idx, 1)
 	switch dir {
 	case 1:
-		newRHS.SetVec(numRows, rhs)
+		newConstraints.Set(numRows, numCols, 1) // slack
 	case 2:
-		newRHS.SetVec(numRows, -rhs)
+		newConstraints.Set(numRows, numCols, -1) // surplus
 	}
+	newRHS := matrix.ResizeVecDense(scf.RHS, numRows+1)
+	newRHS.SetVec(numRows, rhs)
+
 	scf.Constraints = newConstraints
 	scf.RHS = newRHS
+	// The new column has no cost and is tracked like any other slack
+	scf.Objective = matrix.ResizeVecDense(scf.Objective, numCols+1)
+	scf.SlackIndices = append(scf.SlackIndices, numCols)
+	if scf.VarCategories != nil {
+		scf.VarCategories = append(scf.VarCategories, VarCategoryContinuous)
+	}
 }
 
 // AddEquality appends an equality constraint fixing column idx to value.

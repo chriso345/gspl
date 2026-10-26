@@ -33,12 +33,14 @@ func TestDefaultBranch_HappyPath(t *testing.T) {
 	rhs := down.SCF.RHS.AtVec(r)
 	assert.Equal(t, rhs, 2.0)
 
-	// Check up (dir 2) has a -1 at column 1 and RHS -3 (-(int+1))
+	// Check up (dir 2) is x1 - s = 3 (int+1) with a surplus in the new column
 	r2 := up.SCF.Constraints.RawMatrix().Rows - 1
 	val2 := up.SCF.Constraints.At(r2, 1)
-	assert.Equal(t, val2, -1.0)
+	assert.Equal(t, val2, 1.0)
+	surplus := up.SCF.Constraints.At(r2, up.SCF.Constraints.RawMatrix().Cols-1)
+	assert.Equal(t, surplus, -1.0)
 	rhs2 := up.SCF.RHS.AtVec(r2)
-	assert.Equal(t, rhs2, -3.0)
+	assert.Equal(t, rhs2, 3.0)
 }
 
 func TestDefineStrategies_SetsDefaultsOrUsesProvided(t *testing.T) {
@@ -123,4 +125,28 @@ func TestDefaultBranch_NoSuitableDueToContinuous(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error due to no suitable branching variable")
 	}
+}
+
+// A near-integral value must not be picked over a genuinely fractional one.
+func TestDefaultBranch_SkipsNearIntegral(t *testing.T) {
+	scf := &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(2, []float64{0.99999999999999989, 2.5}),
+		Constraints:    mat.NewDense(1, 2, []float64{0, 0}),
+		RHS:            mat.NewVecDense(1, []float64{0}),
+		Objective:      mat.NewVecDense(2, []float64{0, 0}),
+		ObjectiveValue: new(float64),
+		Status:         new(common.SolverStatus),
+		SlackIndices:   []int{-1, -1},
+		VarCategories:  []common.VarCategory{common.VarCategoryInteger, common.VarCategoryInteger},
+	}
+
+	children, err := DefaultBranch(&common.Node{SCF: scf})
+	assert.Nil(t, err)
+	assert.Equal(t, len(children), 2)
+
+	down := children[1].SCF
+	r := down.Constraints.RawMatrix().Rows - 1
+	assert.Equal(t, down.Constraints.At(r, 0), 0.0)
+	assert.Equal(t, down.Constraints.At(r, 1), 1.0)
+	assert.Equal(t, down.RHS.AtVec(r), 2.0)
 }

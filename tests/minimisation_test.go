@@ -158,5 +158,6 @@ func Test_Minimisation2(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, sol.Status.String(), lp.LpStatusOptimal.String())
-	assert.IsClose(t, sol.ObjectiveValue, 10.0, 1e-5)
+	// Brute force over x_i in 0..4: optima (1,1,2,1,0) and (1,2,1,0,1)
+	assert.IsClose(t, sol.ObjectiveValue, 13.0, 1e-5)
 }

@@ -1,6 +1,8 @@
 package brancher
 
 import (
+	"math"
+
 	"github.com/chriso345/gspl/internal/common"
 	"github.com/chriso345/gspl/internal/errors"
 )
@@ -29,7 +31,7 @@ func DefaultBranch(node *common.Node) ([]*common.Node, error) {
 			varIdx = p
 		}
 		isBinary := varIdx < len(node.SCF.VarCategories) && node.SCF.VarCategories[varIdx] == common.VarCategoryBinary
-		if val != float64(int(val)) || (isBinary && !(val == 0 || val == 1)) {
+		if !isIntegral(val) || (isBinary && !isBinaryValue(val)) {
 			branchingVarIndex = p
 			break
 		}
@@ -51,7 +53,7 @@ func DefaultBranch(node *common.Node) ([]*common.Node, error) {
 		found := false
 		for p := branchingVarIndex + 1; p < node.SCF.PrimalSolution.Len(); p++ {
 			val2 := node.SCF.PrimalSolution.AtVec(p)
-			if val2 != float64(int(val2)) {
+			if !isIntegral(val2) {
 				vIdx := p
 				if p < len(primalToVar) {
 					vIdx = primalToVar[p]
@@ -83,8 +85,8 @@ func DefaultBranch(node *common.Node) ([]*common.Node, error) {
 	// Fallback: general integer branching using AddBranch
 	down := &common.Node{SCF: node.SCF.Copy()}
 	up := &common.Node{SCF: node.SCF.Copy()}
-	down.SCF.AddBranch(branchingVarIndex, float64(int(val)), 1)
-	up.SCF.AddBranch(branchingVarIndex, float64(int(val)+1), 2)
+	down.SCF.AddBranch(branchingVarIndex, math.Floor(val), 1)
+	up.SCF.AddBranch(branchingVarIndex, math.Floor(val)+1, 2)
 	return []*common.Node{up, down}, nil
 }
 

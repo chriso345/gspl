@@ -68,3 +68,31 @@ func TestIsIntegerFeasible_FallbackIntegerNonInteger(t *testing.T) {
 	}
 	assert.False(t, isIntegerFeasible(scf))
 }
+
+// Simplex leaves integral values a few ulps off; they must count as integral.
+func TestIsIntegerFeasible_Tolerance(t *testing.T) {
+	cats := []common.VarCategory{common.VarCategoryInteger, common.VarCategoryInteger, common.VarCategoryBinary}
+
+	// primals only
+	scf := &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(3, []float64{0.99999999999999989, 8.000000000000002, 1.0000000000000002}),
+		SlackIndices:   []int{-1, -1, -1},
+		VarCategories:  cats,
+	}
+	assert.True(t, isIntegerFeasible(scf))
+
+	// primals followed by a slack column
+	scf = &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(4, []float64{0.99999999999999989, 8.000000000000002, 1.0000000000000002, 0.5}),
+		SlackIndices:   []int{-1, -1, -1, 3},
+		VarCategories:  append(cats, common.VarCategoryContinuous),
+	}
+	assert.True(t, isIntegerFeasible(scf))
+
+	// no categories
+	scf = &common.StandardComputationalForm{
+		PrimalSolution: mat.NewVecDense(2, []float64{0.99999999999999989, 8.000000000000002}),
+		SlackIndices:   []int{-1, -1},
+	}
+	assert.True(t, isIntegerFeasible(scf))
+}

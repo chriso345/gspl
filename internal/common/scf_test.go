@@ -47,18 +47,31 @@ func TestSCFAddBranch(t *testing.T) {
 		Constraints:    constr,
 		RHS:            rhs,
 		PrimalSolution: mat.NewVecDense(2, nil),
+		SlackIndices:   []int{-1, -1},
 	}
 
+	// x1 <= 5 becomes x1 + s = 5 with a new slack column
 	scf.AddBranch(1, 5, 1)
 	m, n := scf.Constraints.Dims()
 	assert.Equal(t, m, 2)
-	assert.Equal(t, n, 2)
+	assert.Equal(t, n, 3)
 	assert.Equal(t, scf.Constraints.At(1, 1), 1.0)
+	assert.Equal(t, scf.Constraints.At(1, 2), 1.0)
 	assert.Equal(t, scf.RHS.AtVec(1), 5.0)
+	assert.Equal(t, scf.Objective.Len(), 3)
+	assert.Equal(t, scf.Objective.AtVec(2), 0.0)
+	assert.Equal(t, len(scf.SlackIndices), 3)
+	assert.Equal(t, scf.SlackIndices[2], 2)
 
+	// x0 >= 3 becomes x0 - s = 3 with a new surplus column, keeping the RHS non-negative
 	scf.AddBranch(0, 3, 2)
-	assert.Equal(t, scf.Constraints.At(2, 0), -1.0)
-	assert.Equal(t, scf.RHS.AtVec(2), -3.0)
+	m, n = scf.Constraints.Dims()
+	assert.Equal(t, m, 3)
+	assert.Equal(t, n, 4)
+	assert.Equal(t, scf.Constraints.At(2, 0), 1.0)
+	assert.Equal(t, scf.Constraints.At(2, 3), -1.0)
+	assert.Equal(t, scf.RHS.AtVec(2), 3.0)
+	assert.Equal(t, scf.Objective.Len(), 4)
 }
 
 func TestSCFAddEquality(t *testing.T) {

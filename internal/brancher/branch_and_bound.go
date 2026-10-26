@@ -2,12 +2,18 @@ package brancher
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/chriso345/gspl/internal/common"
 	"github.com/chriso345/gspl/internal/concurrency"
 	"github.com/chriso345/gspl/internal/errors"
 	"github.com/chriso345/gspl/internal/simplex"
 )
+
+// pruneMargin is how far, relative to the incumbent, a node's LP bound must be
+// below it (above it when minimising) before the node is pruned. It covers float
+// error in the bound, so it errs towards exploring a node.
+const pruneMargin = 1e-9
 
 func branchAndBound(ip *common.IntegerProgram, rootNode *common.Node, config *common.SolverConfig) error {
 	return branchAndBoundParallel(ip, rootNode, config)
@@ -45,45 +51,22 @@ func branchAndBoundParallel(ip *common.IntegerProgram, rootNode *common.Node, co
 			fmt.Printf("[DEBUG] Primal Solution: %v\n", node.SCF.PrimalSolution)
 		}
 		if node.IsInteger {
-			objVal := *node.SCF.ObjectiveValue
-			// Flip to original sense if this SCF represents a maximisation
-			if node.SCF.IsMaximization {
-				objVal = -objVal
-			}
-			// protect BestObj update
-			ip.BestMutex.Lock()
-			// If no best solution yet, accept this one
-			if ip.BestSolution == nil {
-				ip.BestObj = objVal
-				ip.BestSolution = node.SCF.PrimalSolution
-				if config.Debug {
-					fmt.Printf("[DEBUG] New Best Obj: %.4f\n", ip.BestObj)
-				}
-				ip.BestMutex.Unlock()
-				return nil
-			}
-			// Update depending on minimisation/maximisation
-			if node.SCF.IsMaximization {
-				if objVal > ip.BestObj+config.Tolerance {
-					ip.BestObj = objVal
-					ip.BestSolution = node.SCF.PrimalSolution
-					if config.Debug {
-						fmt.Printf("[DEBUG] New Best Obj: %.4f\n", ip.BestObj)
-					}
-				}
-			} else {
-				if objVal < ip.BestObj-config.Tolerance {
-					ip.BestObj = objVal
-					ip.BestSolution = node.SCF.PrimalSolution
-					if config.Debug {
-						fmt.Printf("[DEBUG] New Best Obj: %.4f\n", ip.BestObj)
-					}
-				}
-			}
-			ip.BestMutex.Unlock()
+			return acceptIncumbent(ip, node.SCF, config)
+		}
+		// Not integer feasible: prune if its LP bound is clearly worse than the
+		// incumbent (see pruneMargin), otherwise branch recursively. The bound is
+		// in the SCF's minimisation sense.
+		ip.BestMutex.Lock()
+		best := ip.BestObj
+		if node.SCF.IsMaximization {
+			best = -best
+		}
+		dominated := ip.BestSolution != nil &&
+			*node.SCF.ObjectiveValue > best+pruneMargin*math.Max(1, math.Abs(best))
+		ip.BestMutex.Unlock()
+		if dominated {
 			return nil
 		}
-		// Not integer feasible, branch recursively
 		return branchAndBoundParallel(ip, node, config)
 	}
 
@@ -103,11 +86,19 @@ func branchAndBoundParallel(ip *common.IntegerProgram, rootNode *common.Node, co
 		}
 	}
 
+	// Wait for every child, then report the first failure: a dropped subtree
+	// could hide the optimum.
+	var firstErr error
 	for range nodes {
 		r := <-results
-		if r.err != nil && config.Logging {
-			fmt.Printf("Error in branchAndBoundParallel: %v\n", r.err)
+		if r.err != nil {
+			if config.Logging {
+				fmt.Printf("Error in branchAndBoundParallel: %v\n", r.err)
+			}
+			if firstErr == nil {
+				firstErr = r.err
+			}
 		}
 	}
-	return nil
+	return firstErr
 }

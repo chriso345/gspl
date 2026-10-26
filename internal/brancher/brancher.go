@@ -40,12 +40,9 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 	}
 
 	if rootNode.IsInteger {
-		if rootNode.SCF.IsMaximization {
-			ip.BestObj = -(*rootNode.SCF.ObjectiveValue)
-		} else {
-			ip.BestObj = *rootNode.SCF.ObjectiveValue
+		if err := acceptIncumbent(ip, rootNode.SCF, config); err != nil {
+			return err
 		}
-		ip.BestSolution = rootNode.SCF.PrimalSolution
 		*ip.SCF.Status = common.SolverStatusOptimal
 		return nil
 	}
@@ -64,6 +61,25 @@ func BranchAndBound(ip *common.IntegerProgram, config *common.SolverConfig) erro
 	return err
 }
 
+// integralityTolerance is how far a value may be from an integer and still count
+// as integral. It absorbs floating-point noise from the simplex, which otherwise
+// makes branch-and-bound branch on the same variable forever. It cannot be made
+// much tighter: the simplex accepts rows violated by up to 1e-8, so a child LP can
+// land just outside its own branch bound, and with 1e-12 branch-and-bound
+// re-branched on such a value forever. Integer solutions are still checked
+// exactly before they are accepted, see acceptIncumbent.
+const integralityTolerance = 1e-9
+
+// isIntegral reports whether val is an integer within integralityTolerance
+func isIntegral(val float64) bool {
+	return math.Abs(val-math.Round(val)) <= integralityTolerance
+}
+
+// isBinaryValue reports whether val is 0 or 1 within integralityTolerance
+func isBinaryValue(val float64) bool {
+	return isIntegral(val) && (math.Round(val) == 0 || math.Round(val) == 1)
+}
+
 // isIntegerFeasible checks if a solution is currently integer feasible
 func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 	sol := scf.PrimalSolution
@@ -72,7 +88,7 @@ func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 		for i := 0; i < sol.Len(); i++ {
 			val := sol.AtVec(i)
 			isSlack := scf.SlackIndices[i]
-			if math.Floor(val) != val && isSlack == -1 {
+			if !isIntegral(val) && isSlack == -1 {
 				return false
 			}
 		}
@@ -97,10 +113,10 @@ func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 				if cat == common.VarCategoryInteger || cat == common.VarCategoryBinary {
 					// For binary also ensure within [0,1]
 					if cat == common.VarCategoryBinary {
-						if !(math.Abs(val-0) < 1e-9 || math.Abs(val-1) < 1e-9) {
+						if !isBinaryValue(val) {
 							return false
 						}
-					} else if math.Floor(val) != val {
+					} else if !isIntegral(val) {
 						return false
 					}
 				}
@@ -116,12 +132,11 @@ func isIntegerFeasible(scf *common.StandardComputationalForm) bool {
 			cat := scf.VarCategories[varIdx]
 			switch cat {
 			case common.VarCategoryInteger:
-				if math.Floor(val) != val {
+				if !isIntegral(val) {
 					return false
 				}
 			case common.VarCategoryBinary:
-				// binary must be 0 or 1 (allow tiny numerical tolerance)
-				if !(math.Abs(val-0) < 1e-9 || math.Abs(val-1) < 1e-9) {
+				if !isBinaryValue(val) {
 					return false
 				}
 			}
