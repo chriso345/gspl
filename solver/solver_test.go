@@ -286,7 +286,7 @@ func TestSolve_Concurrent(t *testing.T) {
 				RHS:         rhs,
 				ConTypes:    []lp.LpConstraintType{lp.LpConstraintLE},
 				Vars: []lp.LpVariable{
-					{Name: "x", Category: lp.LpVariableInteger},
+					{Name: "x", Category: lp.LpCategoryInteger},
 				},
 				Status: common.SolverStatusNotSolved,
 			}
