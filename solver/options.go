@@ -26,7 +26,7 @@ func WithContext(ctx context.Context) SolverOption {
 }
 
 // WithMaxIterations sets an upper bound on the number of solver iterations.
-// A value <= 0 usually means no iteration limit.
+// A value <= 0 disables the iteration limit.
 func WithMaxIterations(max int) SolverOption {
 	return func(cfg *common.SolverConfig) {
 		cfg.MaxIterations = max

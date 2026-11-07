@@ -152,7 +152,7 @@ func RSM(sm *simplexMethod, phase int, config *common.SolverConfig) error {
 	}
 
 	q := 0
-	for q = range _maxIter {
+	for q = 0; _maxIter <= 0 || q < _maxIter; q++ {
 		xb := mat.NewVecDense(sm.m, nil) // Basic solution
 		err := xb.SolveVec(B, sm.b)
 		if err != nil {

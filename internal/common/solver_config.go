@@ -60,9 +60,6 @@ func ValidateSolverConfig(cfg *SolverConfig) error {
 	if cfg.Tolerance <= 0 {
 		return errors.New(errors.ErrInvalidInput, "tolerance must be > 0", nil)
 	}
-	if cfg.MaxIterations <= 0 {
-		return errors.New(errors.ErrInvalidInput, "max iterations must be > 0", nil)
-	}
 	if cfg.GapSensitivity < 0 || cfg.GapSensitivity > 1 {
 		return errors.New(errors.ErrInvalidInput, "gap sensitivity must be between 0 and 1", nil)
 	}
