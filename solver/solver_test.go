@@ -273,7 +273,7 @@ func TestSolve_Concurrent(t *testing.T) {
 	const goroutines = 10
 	errs := make(chan error, goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		go func() {
 			objective := mat.NewVecDense(1, []float64{-1.0})
 			constraints := mat.NewDense(1, 1, []float64{1.0})
@@ -296,7 +296,7 @@ func TestSolve_Concurrent(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		if err := <-errs; err != nil {
 			t.Errorf("concurrent solve error: %v", err)
 		}
@@ -322,6 +322,13 @@ func TestSolve_IterationLimit(t *testing.T) {
 			}
 			continue
 		}
+		if limit == -1 {
+			if err == nil {
+				t.Fatalf("expected the negative iteration limit to stop the solve")
+			}
+			continue
+		}
+
 		if err != nil {
 			t.Fatalf("limit %d: %v", limit, err)
 		}

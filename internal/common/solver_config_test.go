@@ -25,11 +25,13 @@ func TestValidateSolverConfig(t *testing.T) {
 }
 
 func TestValidateSolverConfig_NonPositiveIterationLimit(t *testing.T) {
-	for _, limit := range []int{0, -1} {
-		cfg := DefaultSolverConfig()
-		cfg.MaxIterations = limit
-		if err := ValidateSolverConfig(cfg); err != nil {
-			t.Fatalf("limit %d: %v", limit, err)
-		}
-	}
+	cfg := DefaultSolverConfig()
+
+	cfg.MaxIterations = -1
+	err := ValidateSolverConfig(cfg)
+	assert.NotNil(t, err)
+
+	cfg.MaxIterations = 0
+	err = ValidateSolverConfig(cfg)
+	assert.Nil(t, err)
 }
