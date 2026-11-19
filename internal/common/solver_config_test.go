@@ -23,3 +23,15 @@ func TestValidateSolverConfig(t *testing.T) {
 	err := ValidateSolverConfig(cfg)
 	assert.Nil(t, err)
 }
+
+func TestValidateSolverConfig_NonPositiveIterationLimit(t *testing.T) {
+	cfg := DefaultSolverConfig()
+
+	cfg.MaxIterations = -1
+	err := ValidateSolverConfig(cfg)
+	assert.NotNil(t, err)
+
+	cfg.MaxIterations = 0
+	err = ValidateSolverConfig(cfg)
+	assert.Nil(t, err)
+}

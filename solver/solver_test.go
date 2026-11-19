@@ -273,7 +273,7 @@ func TestSolve_Concurrent(t *testing.T) {
 	const goroutines = 10
 	errs := make(chan error, goroutines)
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		go func() {
 			objective := mat.NewVecDense(1, []float64{-1.0})
 			constraints := mat.NewDense(1, 1, []float64{1.0})
@@ -296,10 +296,44 @@ func TestSolve_Concurrent(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < goroutines; i++ {
+	for range goroutines {
 		if err := <-errs; err != nil {
 			t.Errorf("concurrent solve error: %v", err)
 		}
 	}
 }
 
+// A non-positive iteration limit disables the limit instead of stopping before
+// the first simplex pivot.
+func TestSolve_IterationLimit(t *testing.T) {
+	for _, limit := range []int{0, -1, 1, 10} {
+		prog := &lp.LinearProgram{
+			Sense:       lp.LpMinimise,
+			Objective:   mat.NewVecDense(1, []float64{1}),
+			Constraints: mat.NewDense(1, 1, []float64{1}),
+			RHS:         mat.NewVecDense(1, []float64{4}),
+			ConTypes:    []lp.LpConstraintType{lp.LpConstraintGE},
+			Vars:        []lp.LpVariable{{Name: "x"}},
+		}
+		sol, err := Solve(prog, WithMaxIterations(limit))
+		if limit == 1 {
+			if err == nil {
+				t.Fatal("expected the one-iteration limit to stop the solve")
+			}
+			continue
+		}
+		if limit == -1 {
+			if err == nil {
+				t.Fatalf("expected the negative iteration limit to stop the solve")
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Fatalf("limit %d: %v", limit, err)
+		}
+		if sol.Status != common.SolverStatusOptimal || sol.ObjectiveValue != 4 || sol.PrimalSolution.AtVec(0) != 4 {
+			t.Fatalf("limit %d: unexpected solution %+v", limit, sol)
+		}
+	}
+}
