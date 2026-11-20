@@ -110,3 +110,33 @@ func TestAddObjectiveVariableNotFoundPanic(t *testing.T) {
 	}()
 	p.AddObjective(LpMinimise, expr)
 }
+
+func TestAddObjective_MultipleObjectivesOrder(t *testing.T) {
+	// Test that multiple AddObjective calls preserve order:
+	// first call -> primary objective, subsequent calls -> SecondaryObjectives in order
+	x1 := NewVariable("x1")
+	x2 := NewVariable("x2")
+	lp := NewLinearProgram("Test LP", []LpVariable{x1, x2})
+
+	// First objective: x1 + 2x2
+	obj1 := NewExpression([]LpTerm{NewTerm(1, x1), NewTerm(2, x2)})
+	// Second objective: 3x1 + 4x2
+	obj2 := NewExpression([]LpTerm{NewTerm(3, x1), NewTerm(4, x2)})
+	// Third objective: 5x1 + 6x2
+	obj3 := NewExpression([]LpTerm{NewTerm(5, x1), NewTerm(6, x2)})
+
+	lp.AddObjective(LpMinimise, obj1)
+	lp.AddObjective(LpMinimise, obj2)
+	lp.AddObjective(LpMinimise, obj3)
+
+	// Primary should be first objective
+	assert.Equal(t, lp.Objective.AtVec(0), 1.0)
+	assert.Equal(t, lp.Objective.AtVec(1), 2.0)
+
+	// Secondary should be in order of addition: obj2, then obj3
+	assert.Equal(t, len(lp.SecondaryObjectives), 2)
+	assert.Equal(t, lp.SecondaryObjectives[0].AtVec(0), 3.0)
+	assert.Equal(t, lp.SecondaryObjectives[0].AtVec(1), 4.0)
+	assert.Equal(t, lp.SecondaryObjectives[1].AtVec(0), 5.0)
+	assert.Equal(t, lp.SecondaryObjectives[1].AtVec(1), 6.0)
+}
