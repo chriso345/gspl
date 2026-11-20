@@ -154,3 +154,29 @@ func TestSolveLexicographic_MixedDirectionsFails(t *testing.T) {
 	_, err := SolveLexicographic(&prog)
 	assert.NotNil(t, err)
 }
+
+func TestSolveLexicographic_MaxSecondaryViaAddObjective(t *testing.T) {
+	vars := []lp.LpVariable{lp.NewVariable("x"), lp.NewVariable("y")}
+	// primary: maximize x
+	obj1 := lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, vars[0])})
+	// secondary: maximize y
+	obj2 := lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, vars[1])})
+
+	prog := lp.NewLinearProgram("Max Lex Secondary", vars)
+	prog.AddObjective(lp.LpMaximise, obj1)
+	prog.AddObjective(lp.LpMaximise, obj2)
+	// constraints: x <= 5, y <= 3, x + y <= 6
+	prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, vars[0])}), lp.LpConstraintLE, 5)
+	prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, vars[1])}), lp.LpConstraintLE, 3)
+	prog.AddConstraint(lp.NewExpression([]lp.LpTerm{lp.NewTerm(1, vars[0]), lp.NewTerm(1, vars[1])}), lp.LpConstraintLE, 6)
+
+	res, err := SolveLexicographic(&prog)
+	assert.Nil(t, err)
+	// Primary: maximize x -> x=5 (with y=0 or 1)
+	// Secondary: maximize y -> with x=5 fixed, max y=1 (since 5+y<=6)
+	assert.Equal(t, 5.0, res.ObjectiveValues[0])
+	assert.Equal(t, 1.0, res.ObjectiveValues[1])
+	// Primal solution should be x=5, y=1
+	assert.Equal(t, 5.0, res.PrimalSolution.AtVec(0))
+	assert.Equal(t, 1.0, res.PrimalSolution.AtVec(1))
+}

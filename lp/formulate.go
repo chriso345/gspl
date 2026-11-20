@@ -30,7 +30,7 @@ func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 
 		// Solver requires a minimisation problem. If maximising we invert the coefficients
 		// here and mark the LinearProgram so newSCF does not invert a second time.
-		if sense == LpMaximise {
+		if sense == LpMaximise && lp.Objective == nil {
 			coef = -coef
 		}
 
@@ -48,6 +48,7 @@ func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 	}
 
 	// Primary objective already exists; append to SecondaryObjectives
+	// Secondary objectives are stored in original (non-negated) form.
 	if lp.SecondaryObjectives == nil {
 		lp.SecondaryObjectives = []*mat.VecDense{}
 	}
