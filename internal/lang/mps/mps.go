@@ -19,10 +19,13 @@ func (m *MPSLanguage) Name() string { return "mps" }
 
 func parseMPSToLP(r io.Reader, filename string) (*lp.LinearProgram, error) {
 	s := bufio.NewScanner(r)
-	rows := map[string]rune{}           // name -> type (N,L,G,E)
+	rows := map[string]rune{}               // name -> type (N,L,G,E)
 	cols := map[string]map[string]float64{} // var -> row -> coef
 	rhs := map[string]map[string]float64{}  // rhsname -> row -> value
-	bounds := []struct{ typ, varname string; val float64 }{}
+	bounds := []struct {
+		typ, varname string
+		val          float64
+	}{}
 	var orderVars []string
 	desc := filename
 	section := ""
@@ -110,7 +113,10 @@ func parseMPSToLP(r io.Reader, filename string) (*lp.LinearProgram, error) {
 				valStr := f[3]
 				val, err := strconv.ParseFloat(valStr, 64)
 				if err == nil {
-					bounds = append(bounds, struct{ typ, varname string; val float64 }{typ, varname, val})
+					bounds = append(bounds, struct {
+						typ, varname string
+						val          float64
+					}{typ, varname, val})
 				}
 			}
 		default:

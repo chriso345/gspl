@@ -302,4 +302,3 @@ func TestSolve_Concurrent(t *testing.T) {
 		}
 	}
 }
-

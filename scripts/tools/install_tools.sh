@@ -4,7 +4,7 @@ set -euo pipefail
 
 TOOLS=(
   "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.1"
-  "golang.org/x/perf/cmd/benchstat@latest"
+  "golang.org/x/perf/cmd/benchstat@4febdb082b2ce2a0f9f6f496698aa5a2273279b8"
 )
 
 # Helper to get binary name from Go module

@@ -7,7 +7,7 @@ cd "$ROOT_DIR"
 
 # Directories/files to exclude from scanning for exported functions
 EXCLUDE_DIRS=(
-  ".github"
+  ".*" # Ignore all hidden directories
   "cmd"
   "examples"
   "internal"

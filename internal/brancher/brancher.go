@@ -150,4 +150,3 @@ func getBranchFunc(ip *common.IntegerProgram) common.BranchFunc {
 	}
 	return DefaultBranch
 }
-
