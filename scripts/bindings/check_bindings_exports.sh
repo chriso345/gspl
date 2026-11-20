@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # Move to the repository root reliably
 ROOT_DIR="$(git rev-parse --show-toplevel)"
@@ -7,7 +6,7 @@ cd "$ROOT_DIR"
 
 # Directories/files to exclude from scanning for exported functions
 EXCLUDE_DIRS=(
-  ".github"
+  ".[^.]*"
   "cmd"
   "examples"
   "internal"

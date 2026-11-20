@@ -68,7 +68,6 @@ func TestGetBranchFunc_SetsDefaultsOrUsesProvided(t *testing.T) {
 	}
 }
 
-
 func TestDefaultHeuristicAndCut(t *testing.T) {
 	vals, obj, ok := DefaultHeuristic(nil)
 	assert.Equal(t, obj, 0.0)

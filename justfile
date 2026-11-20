@@ -24,12 +24,12 @@ test:
 
 # Run benchmarks for a folder and branch
 [group("Unit Tests & Benchmarks")]
-bench folder="." branch="HEAD":
-    {{ scripts_dir }}/testing/run_benchmarks.sh {{ folder }} {{ branch }}
+bench folder="./..." branch="HEAD":
+    {{ scripts_dir }}/testing/run_benchmarks.sh {{ branch }} -p {{ folder }}
 
 # Run benchmarks for a single package
 [group("Unit Tests & Benchmarks")]
-bench-pkg pkg="./benchmarks/solver":
+bench-pkg pkg="./solver":
     go test {{ pkg }} -run=^$ -bench=. -benchtime=2s -benchmem
 
 # Generate coverage report
@@ -49,7 +49,7 @@ race:
 # Run golangci-lint
 [group("Linting & Formatting")]
 lint:
-    golangci-lint run || true
+    golangci-lint run
 
 # =========================================
 # DEVELOPMENT TOOLS
