@@ -11,18 +11,8 @@ import (
 // the problem to the solver's minimisation form and [LinearProgram].ObjectiveIsNegated
 // is set to avoid double-negation.
 func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
-	lp.Sense = sense
-
-	// If an objective already exists, move it to SecondaryObjectives
-	if lp.Objective != nil {
-		if lp.SecondaryObjectives == nil {
-			lp.SecondaryObjectives = []*mat.VecDense{}
-		}
-		lp.SecondaryObjectives = append(lp.SecondaryObjectives, mat.VecDenseCopyOf(lp.Objective))
-	}
-
 	// Create the objective function vector
-	lp.Objective = mat.NewVecDense(len(lp.Vars), nil)
+	objectiveVec := mat.NewVecDense(len(lp.Vars), nil)
 
 	for _, term := range expr.Terms {
 		// Find the index of the variable in lp.Vars
@@ -40,13 +30,29 @@ func (lp *LinearProgram) AddObjective(sense LpSense, expr LpExpression) {
 
 		// Solver requires a minimisation problem. If maximising we invert the coefficients
 		// here and mark the LinearProgram so newSCF does not invert a second time.
-		if sense == LpMaximise {
+		if sense == LpMaximise && lp.Objective == nil {
 			coef = -coef
-			lp.ObjectiveIsNegated = true
 		}
 
-		lp.Objective.SetVec(varIndex, coef)
+		objectiveVec.SetVec(varIndex, coef)
 	}
+
+	// If no primary objective exists yet, set it and record the sense
+	if lp.Objective == nil {
+		lp.Objective = objectiveVec
+		lp.Sense = sense
+		if sense == LpMaximise {
+			lp.ObjectiveIsNegated = true
+		}
+		return
+	}
+
+	// Primary objective already exists; append to SecondaryObjectives
+	// Secondary objectives are stored in original (non-negated) form.
+	if lp.SecondaryObjectives == nil {
+		lp.SecondaryObjectives = []*mat.VecDense{}
+	}
+	lp.SecondaryObjectives = append(lp.SecondaryObjectives, objectiveVec)
 }
 
 // AddConstraint appends a constraint to the [LinearProgram].

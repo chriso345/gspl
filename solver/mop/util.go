@@ -66,6 +66,15 @@ func cloneWithObjectives(prog *lp.LinearProgram) (lp.LinearProgram, []*mat.VecDe
 			}
 			sec = ext
 		}
+
+		// Secondary objectives are stored in original form (non-negated).
+		// Convert to match primary's negation state so the rest of the
+		// Pareto code can treat all objectives uniformly.
+		if p.ObjectiveIsNegated {
+			for i := 0; i < sec.Len(); i++ {
+				sec.SetVec(i, -sec.AtVec(i))
+			}
+		}
 		objs = append(objs, sec)
 	}
 
